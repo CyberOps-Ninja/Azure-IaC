@@ -1,0 +1,8 @@
+# to list subscriptions in a table format
+az account list --output table
+
+# to view current subscription
+az account show
+
+# to change subscriptions
+az account set --subscription "SubscriptionName"

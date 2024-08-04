@@ -1,0 +1,38 @@
+## Parameters and Variables - can be changed
+rg="RG-ArubaVGW-IaC"
+location="eastus"
+vnetname="VNet-ArubaVGW"
+address_prefix="10.181.0.0/16"
+subnetname="Azure-Services-Subnet"
+subnet_prefix="10.181.1.0/24"
+nsgname="NSG-ArubaVGW"
+sshkeyname="ssh-key-arubavgw-sandbox"
+
+# create resource group in EastUS region
+echo "Creating Resource Group"
+az group create --name $rg --location $location
+echo "Resource Group Deployed"
+
+# create VNet
+echo "Creating VNet"
+az network vnet create --resource-group $rg --name $vnetname --address-prefix $address_prefix --subnet-name $subnetname --subnet-prefix $subnet_prefix
+echo "VNet Deployed"
+
+# create NSG
+echo "Creating NSG"
+az network nsg create --resource-group $rg --name $nsgname
+echo "Deployed NSG"
+
+# create rules in NSG
+echo "Creating NSG Rules"
+az network nsg rule create --resource-group $rg --nsg-name $nsgname --name Allow-Port-4500 --protocol Tcp --priority 100 --destination-port-ranges 4500
+az network nsg rule create --resource-group $rg --nsg-name $nsgname --name Allow-Port-22 --protocol Tcp --priority 110 --destination-port-ranges 22
+az network nsg rule create --resource-group $rg --nsg-name $nsgname --name Allow-Port-443 --protocol Tcp --priority 120 --destination-port-ranges 443
+echo "Deployed NSG Rules"
+
+# create ssh key
+echo "Creating SSH Key Pair"
+az sshkey create --location $location --resource-group "$rg" --name $sshkeyname
+echo "Deployed SSH Key Pair, please download private key and store in a safe location"
+
+echo "Deployment has finished"
