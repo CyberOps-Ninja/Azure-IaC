@@ -35,7 +35,7 @@ address_prefix_vgw="10.181.0.0/16"
 subnetnamevgw="Azure-Services-Subnet"
 subnet_prefix_vgw="10.181.1.0/24"
 nsgnamevgw="NSG-Sandbox-ArubaVGW"
-sshkeynamevgw="ssh-key-arubavgw-sandbox"
+sshkeyname="SSH-Key-Sandbox-ArubaVGW"
 # parameters/variables for linux machines
 username="azurelinuxadmin"
 password="Az-Linux@R00t"

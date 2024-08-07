@@ -20,6 +20,7 @@ chmod +xr Single-VWAN-ArubaVGW-Orchestrate-Sandbox.sh
 
 ```bash
 # Parameters (Can be changed and should be changed to prevent any overlay in your environment)
+# parameters and variables - can be changed
 rg="RG-VWAN-1-ArubaVGW-IaC"
 location="eastus"
 # parameters and variables for vwan, hub, and firewall
@@ -48,8 +49,8 @@ address_prefix_vgw="10.181.0.0/16"
 subnetnamevgw="Azure-Services-Subnet"
 subnet_prefix_vgw="10.181.1.0/24"
 nsgnamevgw="NSG-Sandbox-ArubaVGW"
-sshkeynamevgw="ssh-key-arubavgw-sandbox"
-# parameters/variables for linux machine
+sshkeyname="SSH-Key-Sandbox-ArubaVGW"
+# parameters/variables for linux machines
 username="azurelinuxadmin"
 password="Az-Linux@R00t"
 vmsize=Standard_DS1_v2

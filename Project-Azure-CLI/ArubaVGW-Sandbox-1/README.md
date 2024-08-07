@@ -22,12 +22,12 @@ chmod +xr ArubaVGW-Orchestrate-Sandbox.sh
 # Parameters (Can be changed and should be changed to prevent any overlay in your environment)
 rg="RG-ArubaVGW-IaC"
 location="eastus"
-vnetname="VNet-ArubaVGW"
+vnetname="VNet-ArubaVGW-IaC"
 address_prefix="10.181.0.0/16"
 subnetname="Azure-Services-Subnet"
 subnet_prefix="10.181.1.0/24"
-nsgname="NSG-ArubaVGW"
-sshkeyname="ssh-key-arubavgw-sandbox"
+nsgname="NSG-ArubaVGW-IaC"
+sshkeyname="ssh-key-arubavgw-iac"
 ```
 
 ### Clean-up
