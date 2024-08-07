@@ -4,7 +4,9 @@
 
 To deploy the bare minimal requirements in Azure for an Aruba VGW using Azure CLI and Aruba Central Virtual Gateway Platform. Code contains Resource Group, Virtual Network, Subnet, Network Security Group, and SSH Key pair.
 
-![net diagram](./Media/arubavgw-orchestrate-sandbox-example-1.png)
+Resource View
+
+![resource view](./Media/arubavgw-orchestrate-sandbox-example-1.png)
 
 ### Deploy IaC
 
