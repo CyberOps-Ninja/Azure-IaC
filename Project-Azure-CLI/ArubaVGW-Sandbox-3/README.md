@@ -1,38 +1,39 @@
-# Lab - Aruba Virtual Gateway Sandbox 2
+# Lab - Aruba Virtual Gateway Sandbox 3
 
 ## Introduction
 
-To deploy the bare minimal requirements in Azure for an Aruba VGW using Azure CLI and Aruba Central Virtual Gateway Platform. Code contains Resource Group, Virtual Network, Subnet, Network Security Group, and SSH Key pair. The second part of this lab is to take it to the next level. By the following: deploying a single Virtual WAN, with a secure hub (Azure Firewall and Policy), VPN Gateway, three spoke vNets, and three Linux virtual machines are scripted in AzureCLI. Estimated deployment time: 59 minutes to 61 minutes for 26 Azure Resources.
+To deploy the bare minimal requirements in Azure for an Aruba VGW using Azure CLI and Aruba Central Virtual Gateway Platform. Code contains Resource Group, Virtual Network, Subnet, Network Security Group, and SSH Key pair. The second part of this lab is to take it to the next level. By the following: deploying a dual Virtual WAN, with a single secure hub (Azure Firewall and Policy) in both Virtual WANs, VPN Gateways, three spoke vNets in one vWAN, and three Linux virtual machines are scripted in AzureCLI.
 
 Resource View
 
-![resource view](./Media/single-vwan-arubavgw-orchestrate-sandbox-example-1.png)
-
-Single vWAN Topology
-
-![single vwan topology](./Media/single-vwan-topology-example-1.png)
+![resource view](./Media/dual-vwan-arubavgw-orchestrate-sandbox-example-1.png)
 
 ### Deploy IaC
 
 The lab is also available in the above .azcli that you can rename as .sh (shell script) and execute. You can open [Azure Cloud Shell (Bash)](https://shell.azure.com) and run the following commands build the entire lab:
 
 ```bash
-wget -O Single-VWAN-ArubaVGW-Orchestrate-Sandbox.sh https://raw.githubusercontent.com/CyberOps-Ninja/Azure-IaC/main/Project-Azure-CLI/ArubaVGW-Sandbox-2/Single-VWAN-ArubaVGW-Orchestrate-Sandbox.azcli
-chmod +xr Single-VWAN-ArubaVGW-Orchestrate-Sandbox.sh
-./Single-VWAN-ArubaVGW-Orchestrate-Sandbox.sh
+wget -O Dual-VWAN-ArubaVGW-Orchestrate-Sandbox.sh https://raw.githubusercontent.com/CyberOps-Ninja/Azure-IaC/main/Project-Azure-CLI/ArubaVGW-Sandbox-3/Dual-VWAN-ArubaVGW-Orchestrate-Sandbox.azcli
+chmod +xr Dual-VWAN-ArubaVGW-Orchestrate-Sandbox.sh
+./Dual-VWAN-ArubaVGW-Orchestrate-Sandbox.sh
 ```
 
 ### Default Parameters
 
 ```bash
 # Parameters (Can be changed and should be changed to prevent any overlay in your environment)
-# parameters/variables for resource group name and location
-rg="RG-VWAN-1-ArubaVGW-IaC"
+# parameters/variables - resource group name and location
+rg="RG-VWAN-2-ArubaVGW-IaC"
 location="eastus"
-# parameters and variables for vwan, hub, and firewall
+# parameters/variables for first vwan, hub, and firewall
 vwan1name="VWAN-1-DataCenter"
 hub1name="Hub-1-DataCenter"
 address_prefix_hub1="10.175.0.0/24"
+# parameters/variables for secondary vwan, hub, and firewall
+vwan2name="VWAN-2-Internet"
+hub2name="Hub-2-Internet"
+address_prefix_hub2="10.182.0.0/24"
+# parameters/variables for firewall sku in both vwans
 firewallsku="Premium"
 # parameters/variables for spoke vnet 1
 vnetspokename1="VNet-Sandbox-E1"
@@ -69,7 +70,7 @@ vmname3="VMSandboxInfraMgmt"
 
 ```bash
 # Parameters 
-rg=RG-VWAN-1-ArubaVGW-IaC
+rg=RG-VWAN-2-ArubaVGW-IaC
 
 # Clean up
 az group delete -g $rg --no-wait 

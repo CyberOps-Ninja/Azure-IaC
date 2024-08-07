@@ -6,13 +6,18 @@ az extension add --name azure-firewall
 az extension update --name virtual-wan
 az extension update --name azure-firewall 
 
-# parameters and variables - can be changed
-rg="RG-VWAN-1-ArubaVGW-IaC"
+# parameters/variables - can be changed
+rg="RG-VWAN-2-ArubaVGW-IaC"
 location="eastus"
-# parameters and variables for vwan, hub, and firewall
+# parameters/variables for first vwan, hub, and firewall
 vwan1name="VWAN-1-DataCenter"
 hub1name="Hub-1-DataCenter"
 address_prefix_hub1="10.175.0.0/24"
+# parameters/variables for secondary vwan, hub, and firewall
+vwan2name="VWAN-2-Internet"
+hub2name="Hub-2-Internet"
+address_prefix_hub2="10.182.0.0/24"
+# parameters/variables for firewall sku in both vwans
 firewallsku="Premium"
 # parameters/variables for spoke vnet 1
 vnetspokename1="VNet-Sandbox-E1"
@@ -53,9 +58,11 @@ az group create --name $rg --location $location
 echo "Resource Group Deployed"
 
 # create vitual wan
-echo "Creating VWAN Hub"
+echo "Creating VWAN Hubs"
 az network vwan create -g $rg -n $vwan1name --branch-to-branch-traffic true --location $location --type Standard --output none
 az network vhub create -g $rg --name $hub1name --address-prefix $address_prefix_hub1 --vwan $vwan1name --location $location --sku Standard --no-wait
+az network vwan create -g $rg -n $vwan2name --branch-to-branch-traffic true --location $location --type Standard --output none
+az network vhub create -g $rg --name $hub2name --address-prefix $address_prefix_hub2 --vwan $vwan1name --location $location --sku Standard --no-wait
 echo "VWAN & Hub Deployed"
 
 # create spoke virtual networks
@@ -146,7 +153,8 @@ done
 
 # create vhub vpn gateway
 echo "Creating vHub VPN Gateway"
-az network vpn-gateway create -n $hub1name-VPNGW -g $rg --location $location --vhub $hub1name --no-wait 
+az network vpn-gateway create -n $hub1name-VPNGW -g $rg --location $location --vhub $hub1name --no-wait
+az network vpn-gateway create -n $hub2name-VPNGW -g $rg --location $location --vhub $hub2name --no-wait
 echo "vHub VPN Gateway Deployed"
 
 # vwan hub vpn gateway status
@@ -168,6 +176,23 @@ else
     done
 fi
 
+prState=$(az network vpn-gateway show -g $rg -n $hub2name-VPNGW --query provisioningState -o tsv)
+if [[ $prState == 'Failed' ]];
+then
+    echo "VPN Gateway is in fail state. Deleting and rebuilding."
+    az network vpn-gateway delete -n $hub2name-VPNGW -g $rg
+    az network vpn-gateway create -n $hub2name-VPNGW -g $rg --location $location --vhub $hub2name --no-wait
+    sleep 5
+else
+    prState=''
+    while [[ $prState != 'Succeeded' ]];
+    do
+        prState=$(az network vpn-gateway show -g $rg -n $hub2name-VPNGW --query provisioningState -o tsv)
+        echo $hub2name-VPNGW "provisioningState="$prState
+        sleep 5
+    done
+fi
+
 ## Install tools for networking connectivity validation such as traceroute, tcptraceroute, iperf and others (check link below for more details) 
 nettoolsuri="https://raw.githubusercontent.com/CyberOps-Ninja/Azure-IaC/main/Project-Azure-CLI/Azure-Net-Tools/vm-net-tools.sh"
 for vm in `az vm list -g $rg --query "[?contains(storageProfile.imageReference.publisher,'Canonical')].name" -o tsv`
@@ -184,14 +209,32 @@ done
 
 # create firewall policy and rules
 echo "Creating Azure Firewall Policy"
-fwpolicyname=$hub1name-FWPolicy #Firewall Policy Name
-az network firewall policy create --name $fwpolicyname --resource-group $rg --sku $firewallsku --enable-dns-proxy false --output none
-az network firewall policy rule-collection-group create --name NetworkRuleCollectionGroup --priority 200 --policy-name $fwpolicyname --resource-group $rg --output none
+fwpolicyname1=$hub1name-fwpolicy #Firewall Policy Name for first Hub
+fwpolicyname2=$hub2name-fwpolicy #Firewall Policy Name for second Hub
+az network firewall policy create --name $fwpolicyname1 --resource-group $rg --sku $firewallsku --enable-dns-proxy false --output none
+az network firewall policy create --name $fwpolicyname2 --resource-group $rg --sku $firewallsku --enable-dns-proxy false --output none
+az network firewall policy rule-collection-group create --name NetworkRuleCollectionGroup --priority 200 --policy-name $fwpolicyname1 --resource-group $rg --output none
+az network firewall policy rule-collection-group create --name NetworkRuleCollectionGroup --priority 200 --policy-name $fwpolicyname2 --resource-group $rg --output none
 
 # Adding an Allow ICMP any-to-any firewall rule
 az network firewall policy rule-collection-group collection add-filter-collection \
   --resource-group $rg \
-  --policy-name $fwpolicyname \
+  --policy-name $fwpolicyname1 \
+  --name IPv4RoutingCollection \
+  --rcg-name NetworkRuleCollectionGroup \
+  --rule-type NetworkRule \
+  --rule-name Allow-ICMP \
+  --action Allow \
+  --ip-protocols "ICMP" \
+  --source-addresses "*" \
+  --destination-addresses  "*" \
+  --destination-ports "*" \
+  --collection-priority 100 \
+  --output none
+
+az network firewall policy rule-collection-group collection add-filter-collection \
+  --resource-group $rg \
+  --policy-name $fwpolicyname2 \
   --name IPv4RoutingCollection \
   --rcg-name NetworkRuleCollectionGroup \
   --rule-type NetworkRule \
@@ -205,8 +248,10 @@ az network firewall policy rule-collection-group collection add-filter-collectio
   --output none
 
 echo "Deploying Azure Firewall inside vHub"
-fwpolicyid=$(az network firewall policy show --resource-group $rg --name $fwpolicyname --query id --output tsv)
-az network firewall create -g $rg -n $hub1name-azfw --sku AZFW_Hub --tier $firewallsku --virtual-hub $hub1name --public-ip-count 1 --firewall-policy $fwpolicyid --location $location --output none
+fwpolicyid1=$(az network firewall policy show --resource-group $rg --name $fwpolicyname1 --query id --output tsv)
+az network firewall create -g $rg -n $hub1name-azfw --sku AZFW_Hub --tier $firewallsku --virtual-hub $hub1name --public-ip-count 1 --firewall-policy $fwpolicyid1 --location $location --output none
+fwpolicyid2=$(az network firewall policy show --resource-group $rg --name $fwpolicyname2 --query id --output tsv)
+az network firewall create -g $rg -n $hub2name-azfw --sku AZFW_Hub --tier $firewallsku --virtual-hub $hub2name --public-ip-count 1 --firewall-policy $fwpolicyid2 --location $location --output none
 
 msinsights=$(az provider show -n microsoft.insights --query registrationState -o tsv)
 if [ $msinsights == 'NotRegistered' ] || [ $msinsights == 'Unregistered' ]; then
@@ -222,17 +267,26 @@ fi
 
 # Log Analytics workspace name
 echo "Enabling Azure Firewall Diagnostics"
-Workspacename=$hub1name-Sandbox-Log
+Workspacename1=$hub1name-Sandbox-Log
+Workspacename2=$hub2name-Sandbox-Log
 echo "Azure Firewall Diagnostics Log Deployed"
 
 # Creating Log Analytics Workspaces
-az monitor log-analytics workspace create -g $rg --workspace-name $Workspacename --location $location
+az monitor log-analytics workspace create -g $rg --workspace-name $Workspacename1 --location $location
+az monitor log-analytics workspace create -g $rg --workspace-name $Workspacename2 --location $location
 
-#EnablingAzure Firewall diagnostics
-#az monitor diagnostic-settings show -n toLogAnalytics -g $rg --resource $(az network firewall show --name $hub1name-azfw --resource-group $rg --query id -o tsv)
+# EnablingAzure Firewall diagnostics
+# az monitor diagnostic-settings show -n toLogAnalytics -g $rg --resource $(az network firewall show --name $hub1name-azfw --resource-group $rg --query id -o tsv)
 az monitor diagnostic-settings create -n 'toLogAnalytics' \
 --resource $(az network firewall show --name $hub1name-azfw --resource-group $rg --query id -o tsv) \
---workspace $(az monitor log-analytics workspace show -g $rg --workspace-name $Workspacename --query id -o tsv) \
+--workspace $(az monitor log-analytics workspace show -g $rg --workspace-name $Workspacename1 --query id -o tsv) \
+--logs '[{"category":"AzureFirewallApplicationRule","Enabled":true}, {"category":"AzureFirewallNetworkRule","Enabled":true}, {"category":"AzureFirewallDnsProxy","Enabled":true}]' \
+--metrics '[{"category": "AllMetrics","enabled": true}]' \
+--output none
+
+az monitor diagnostic-settings create -n 'toLogAnalytics' \
+--resource $(az network firewall show --name $hub2name-azfw --resource-group $rg --query id -o tsv) \
+--workspace $(az monitor log-analytics workspace show -g $rg --workspace-name $Workspacename2 --query id -o tsv) \
 --logs '[{"category":"AzureFirewallApplicationRule","Enabled":true}, {"category":"AzureFirewallNetworkRule","Enabled":true}, {"category":"AzureFirewallDnsProxy","Enabled":true}]' \
 --metrics '[{"category": "AllMetrics","enabled": true}]' \
 --output none

@@ -1,0 +1,5 @@
+# Parameters 
+rg=RG-VWAN-2-ArubaVGW-IaC
+
+# Clean up
+az group delete -g $rg --no-wait
