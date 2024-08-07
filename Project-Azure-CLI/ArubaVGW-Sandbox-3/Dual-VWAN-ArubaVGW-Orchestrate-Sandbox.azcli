@@ -247,6 +247,7 @@ az network firewall policy rule-collection-group collection add-filter-collectio
   --collection-priority 100 \
   --output none
 
+# creates and deploys azure firewalls inside vhubs
 echo "Deploying Azure Firewall inside vHub"
 fwpolicyid1=$(az network firewall policy show --resource-group $rg --name $fwpolicyname1 --query id --output tsv)
 az network firewall create -g $rg -n $hub1name-azfw --sku AZFW_Hub --tier $firewallsku --virtual-hub $hub1name --public-ip-count 1 --firewall-policy $fwpolicyid1 --location $location --output none
