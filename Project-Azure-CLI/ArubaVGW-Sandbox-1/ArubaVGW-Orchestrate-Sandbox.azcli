@@ -1,14 +1,14 @@
-## Parameters and Variables - can be changed
+# parameters and variables - can be changed
 rg="RG-ArubaVGW-IaC"
 location="eastus"
-vnetname="VNet-ArubaVGW"
+vnetname="VNet-ArubaVGW-IaC"
 address_prefix="10.181.0.0/16"
 subnetname="Azure-Services-Subnet"
 subnet_prefix="10.181.1.0/24"
-nsgname="NSG-ArubaVGW"
-sshkeyname="ssh-key-arubavgw-sandbox"
+nsgname="NSG-ArubaVGW-IaC"
+sshkeyname="ssh-key-arubavgw-iac"
 
-# create resource group in EastUS region
+# create resource group
 echo "Creating Resource Group"
 az group create --name $rg --location $location
 echo "Resource Group Deployed"
