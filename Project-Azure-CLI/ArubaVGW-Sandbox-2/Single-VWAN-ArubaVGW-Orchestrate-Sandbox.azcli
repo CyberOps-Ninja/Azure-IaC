@@ -1,0 +1,240 @@
+# pre-requisites
+echo validating pre-requisites
+az extension add --name virtual-wan 
+az extension add --name azure-firewall
+# or updating vWAN and AzFirewall CLI extensions
+az extension update --name virtual-wan
+az extension update --name azure-firewall 
+
+# parameters and variables - can be changed
+rg="RG-VWAN-1-ArubaVGW-IaC"
+location="eastus"
+# parameters and variables for vwan, hub, and firewall
+vwan1name="VWAN-1-DataCenter"
+hub1name="Hub-1-DataCenter"
+address_prefix_hub1="10.175.0.0/24"
+firewallsku="Premium"
+# parameters/variables for spoke vnet 1
+vnetspokename1="VNet-Sandbox-E1"
+address_prefix_sp_vnet1="10.175.1.0/24"
+subnetname1="Subnet-Sandbox-E1-Main"
+subnet_prefix_1="10.175.1.0/25"
+# parameters/variables for spoke vnet 2
+vnetspokename2="VNet-Sandbox-P6"
+address_prefix_sp_vnet2="10.175.2.0/24"
+subnetname2="Subnet-Sandbox-P6-Main"
+subnet_prefix_2="10.175.2.0/25"
+# parameters/variables for spoke vnet 3
+vnetspokename3="VNet-Sandbox-InfraMgmt"
+address_prefix_sp_vnet3="10.175.3.0/24"
+subnetname3="Subnet-Sandbox-InfraMgmt-Main"
+subnet_prefix_3="10.175.3.0/25"
+# parameters/variables for Aruba VGW's pre-requisites
+vnetnamevgw="VNet-Sandbox-ArubaVGW"
+address_prefix_vgw="10.181.0.0/16"
+subnetnamevgw="Azure-Services-Subnet"
+subnet_prefix_vgw="10.181.1.0/24"
+nsgnamevgw="NSG-Sandbox-ArubaVGW"
+sshkeyname="SSH-Key-Sandbox-ArubaVGW"
+# parameters/variables for linux machines
+username="azurelinuxadmin"
+password="Az-Linux@R00t"
+vmsize=Standard_DS1_v2
+vmname1="VMSandboxE1"
+vmname2="VMSandboxP6"
+vmname3="VMSandboxInfraMgmt"
+
+# parameters/varialbes for my public IP
+mypip=$(curl -4 ifconfig.io -s)
+
+# create resource group in EastUS region
+echo "Creating Resource Group"
+az group create --name $rg --location $location
+echo "Resource Group Deployed"
+
+# create vitual wan
+echo "Creating VWAN Hub"
+az network vwan create -g $rg -n $vwan1name --branch-to-branch-traffic true --location $location --type Standard --output none
+az network vhub create -g $rg --name $hub1name --address-prefix $address_prefix_hub1 --vwan $vwan1name --location $location --sku Standard --no-wait
+echo "VWAN & Hub Deployed"
+
+# create spoke virtual networks
+echo "Creating Spoke VNETs and Subnets"
+az network vnet create --address-prefixes $address_prefix_sp_vnet1 -n $vnetspokename1 -g $rg -l $location --subnet-name $subnetname1 --subnet-prefixes $address_prefix_sp_vnet1 --output none
+az network vnet create --address-prefixes $address_prefix_sp_vnet2 -n $vnetspokename2 -g $rg -l $location --subnet-name $subnetname2 --subnet-prefixes $address_prefix_sp_vnet2 --output none
+az network vnet create --address-prefixes $address_prefix_sp_vnet3 -n $vnetspokename3 -g $rg -l $location --subnet-name $subnetname3 --subnet-prefixes $address_prefix_sp_vnet3 --output none
+echo "Spoke VNets and Subnets Deployed"
+
+# create vm in spoke vnets
+echo "Creating VMs in Spoke VNets"
+az vm create -n $vmname1 -g $rg --image Ubuntu2204 --public-ip-sku Standard --size $vmsize -l $location --subnet $subnetname1 --vnet-name $vnetspokename1 --admin-username $username --admin-password $password
+az vm create -n $vmname2 -g $rg --image Ubuntu2204 --public-ip-sku Standard --size $vmsize -l $location --subnet $subnetname2 --vnet-name $vnetspokename2 --admin-username $username --admin-password $password
+az vm create -n $vmname3 -g $rg --image Ubuntu2204 --public-ip-sku Standard --size $vmsize -l $location --subnet $subnetname3 --vnet-name $vnetspokename3 --admin-username $username --admin-password $password
+echo "VMs Deployed in Spoke VNets"
+
+# create ArubaVGW VNet
+echo "Creating ArubaVGW VNet"
+az network vnet create --resource-group $rg --name $vnetnamevgw --address-prefix $address_prefix_vgw --subnet-name $subnetnamevgw --subnet-prefix $subnet_prefix_vgw
+echo "ArubaVGW VNet Deployed"
+
+# create ArubaVGW NSG
+echo "Creating ArubaVGW NSG"
+az network nsg create --resource-group $rg --name $nsgnamevgw
+echo "ArubaVGW NSG Deployed"
+
+# create rules in ArubaVGW NSG
+echo "Creating ArubaVGW NSG Rules"
+az network nsg rule create --resource-group $rg --nsg-name $nsgnamevgw --name Allow-Port-4500 --protocol Tcp --priority 100 --destination-port-ranges 4500
+az network nsg rule create --resource-group $rg --nsg-name $nsgnamevgw --name Allow-Port-22 --protocol Tcp --priority 110 --destination-port-ranges 22
+az network nsg rule create --resource-group $rg --nsg-name $nsgnamevgw --name Allow-Port-443 --protocol Tcp --priority 120 --destination-port-ranges 443
+echo "ArubaVGW NSG Rules Deployed"
+
+# create ssh key for ArubaVGW
+echo "Creating ArubaVGW SSH Key Pair"
+az sshkey create --location $location --resource-group "$rg" --name $sshkeynamevgw
+echo "ArubaVGW SSH Key Pair Deployed, please download private key and store in a safe location"
+
+# check hub provisioning and routing state
+echo "Checking Hub1 provisioning status"
+prState=''
+rtState=''
+while [[ $prState != 'Succeeded' ]];
+do
+    prState=$(az network vhub show -g $rg -n $hub1name --query 'provisioningState' -o tsv)
+    echo "$hub1name provisioningState="$prState
+    sleep 5
+done
+
+while [[ $rtState != 'Provisioned' ]];
+do
+    rtState=$(az network vhub show -g $rg -n $hub1name --query 'routingState' -o tsv)
+    echo "$hub1name routingState="$rtState
+    sleep 5
+done
+
+# check hub vnet connections
+echo "Creating Hub1 vNet connections"
+az network vhub connection create -n spoke-$vnetspokename1-connection --remote-vnet $vnetspokename1 -g $rg --vhub-name $hub1name --no-wait
+az network vhub connection create -n spoke-$vnetspokename2-connection --remote-vnet $vnetspokename2 -g $rg --vhub-name $hub1name --no-wait
+az network vhub connection create -n spoke-$vnetspokename3-connection --remote-vnet $vnetspokename3 -g $rg --vhub-name $hub1name --no-wait
+echo "Hub1 vNet Connections Deployed"
+
+# validating provisioning state of each spoke vnet's connection
+prState=''
+while [[ $prState != 'Succeeded' ]];
+do
+    prState=$(az network vhub connection show -n spoke-$vnetspokename1-connection --vhub-name $hub1name -g $rg  --query 'provisioningState' -o tsv)
+    echo "vnet connection spoke-$vnetspokename1-connection provisioningState="$prState
+    sleep 5
+done
+
+prState=''
+while [[ $prState != 'Succeeded' ]];
+do
+    prState=$(az network vhub connection show -n spoke-$vnetspokename2-connection --vhub-name $hub1name -g $rg  --query 'provisioningState' -o tsv)
+    echo "vnet connection spoke-$vnetspokename2-connection provisioningState="$prState
+    sleep 5
+done
+
+prState=''
+while [[ $prState != 'Succeeded' ]];
+do
+    prState=$(az network vhub connection show -n spoke-$vnetspokename3-connection --vhub-name $hub1name -g $rg  --query 'provisioningState' -o tsv)
+    echo "vnet connection spoke-$vnetspokename3-connection provisioningState="$prState
+    sleep 5
+done
+
+# create vhub vpn gateway
+echo "Creating vHub VPN Gateway"
+az network vpn-gateway create -n $hub1name-VPNGW -g $rg --location $location --vhub $hub1name --no-wait 
+echo "vHub VPN Gateway Deployed"
+
+# vwan hub vpn gateway status
+echo "Validating vHubs VPN Gateways Provisioning"
+prState=$(az network vpn-gateway show -g $rg -n $hub1name-VPNGW --query provisioningState -o tsv)
+if [[ $prState == 'Failed' ]];
+then
+    echo "VPN Gateway is in fail state. Deleting and rebuilding."
+    az network vpn-gateway delete -n $hub1name-VPNGW -g $rg
+    az network vpn-gateway create -n $hub1name-VPNGW -g $rg --location $location --vhub $hub1name --no-wait
+    sleep 5
+else
+    prState=''
+    while [[ $prState != 'Succeeded' ]];
+    do
+        prState=$(az network vpn-gateway show -g $rg -n $hub1name-VPNGW --query provisioningState -o tsv)
+        echo $hub1name-VPNGW "provisioningState="$prState
+        sleep 5
+    done
+fi
+
+## Install tools for networking connectivity validation such as traceroute, tcptraceroute, iperf and others (check link below for more details) 
+nettoolsuri="https://raw.githubusercontent.com/CyberOps-Ninja/Azure-IaC/main/Project-Azure-CLI/Azure-Net-Tools/vm-net-tools.sh"
+for vm in `az vm list -g $rg --query "[?contains(storageProfile.imageReference.publisher,'Canonical')].name" -o tsv`
+do
+ az vm extension set \
+ --resource-group $rg \
+ --vm-name $vm \
+ --name customScript \
+ --publisher Microsoft.Azure.Extensions \
+ --protected-settings "{\"fileUris\": [\"$nettoolsuri\"],\"commandToExecute\": \"./nettools.sh\"}" \
+ --force-update \
+ --no-wait
+done
+
+# create firewall policy and rules
+echo "Creating Azure Firewall Policy"
+fwpolicyname=$hub1name-fwpolicy #Firewall Policy Name
+az network firewall policy create --name $fwpolicyname --resource-group $rg --sku $firewallsku --enable-dns-proxy false --output none
+az network firewall policy rule-collection-group create --name NetworkRuleCollectionGroup --priority 200 --policy-name $fwpolicyname --resource-group $rg --output none
+
+# Adding an Allow ICMP any-to-any firewall rule
+az network firewall policy rule-collection-group collection add-filter-collection \
+  --resource-group $rg \
+  --policy-name $fwpolicyname \
+  --name IPv4RoutingCollection \
+  --rcg-name NetworkRuleCollectionGroup \
+  --rule-type NetworkRule \
+  --rule-name Allow-ICMP \
+  --action Allow \
+  --ip-protocols "ICMP" \
+  --source-addresses "*" \
+  --destination-addresses  "*" \
+  --destination-ports "*" \
+  --collection-priority 100 \
+  --output none
+
+echo "Deploying Azure Firewall inside vHub"
+fwpolid=$(az network firewall policy show --resource-group $rg --name $fwpolicyname --query id --output tsv)
+az network firewall create -g $rg -n $hub1name-azfw --sku AZFW_Hub --tier $firewallsku --virtual-hub $hub1name --public-ip-count 1 --firewall-policy $fwpolid --location $location --output none
+
+msinsights=$(az provider show -n microsoft.insights --query registrationState -o tsv)
+if [ $msinsights == 'NotRegistered' ] || [ $msinsights == 'Unregistered' ]; then
+az provider register -n microsoft.insights --accept-terms
+ prState=''
+ while [[ $prState != 'Registered' ]];
+ do
+    prState=$(az provider show -n microsoft.insights --query registrationState -o tsv)
+    echo "MS Insights State="$prState
+    sleep 5
+ done
+fi
+
+# Log Analytics workspace name
+echo "Enabling Azure Firewall Diagnostics"
+Workspacename=$hub1name-Sandbox-Log
+echo "Azure Firewall Diagnostics Log Deployed"
+
+# Creating Log Analytics Workspaces
+az monitor log-analytics workspace create -g $rg --workspace-name $Workspacename --location $location
+
+#EnablingAzure Firewall diagnostics
+#az monitor diagnostic-settings show -n toLogAnalytics -g $rg --resource $(az network firewall show --name $hub1name-azfw --resource-group $rg --query id -o tsv)
+az monitor diagnostic-settings create -n 'toLogAnalytics' \
+--resource $(az network firewall show --name $hub1name-azfw --resource-group $rg --query id -o tsv) \
+--workspace $(az monitor log-analytics workspace show -g $rg --workspace-name $Workspacename --query id -o tsv) \
+--logs '[{"category":"AzureFirewallApplicationRule","Enabled":true}, {"category":"AzureFirewallNetworkRule","Enabled":true}, {"category":"AzureFirewallDnsProxy","Enabled":true}]' \
+--metrics '[{"category": "AllMetrics","enabled": true}]' \
+--output none
+
+echo "Deployment Has Finished"
