@@ -193,7 +193,7 @@ else
     done
 fi
 
-## Install tools for networking connectivity validation such as traceroute, tcptraceroute, iperf and others (check link below for more details) 
+## install tools for networking connectivity validation such as traceroute, tcptraceroute, iperf and others
 nettoolsuri="https://raw.githubusercontent.com/CyberOps-Ninja/Azure-IaC/main/Project-Azure-CLI/Azure-Net-Tools/vm-net-tools.sh"
 for vm in `az vm list -g $rg --query "[?contains(storageProfile.imageReference.publisher,'Canonical')].name" -o tsv`
 do
@@ -209,8 +209,8 @@ done
 
 # create firewall policy and rules
 echo "Creating Azure Firewall Policy"
-fwpolicyname1=$hub1name-FwPolicy #Firewall Policy Name for first Hub
-fwpolicyname2=$hub2name-FwPolicy #Firewall Policy Name for second Hub
+fwpolicyname1=$hub1name-FwPolicy #firewall Policy Name for first Hub
+fwpolicyname2=$hub2name-FwPolicy #firewall Policy Name for second Hub
 az network firewall policy create --name $fwpolicyname1 --resource-group $rg --sku $firewallsku --enable-dns-proxy false --output none
 az network firewall policy create --name $fwpolicyname2 --resource-group $rg --sku $firewallsku --enable-dns-proxy false --output none
 az network firewall policy rule-collection-group create --name NetworkRuleCollectionGroup --priority 200 --policy-name $fwpolicyname1 --resource-group $rg --output none
@@ -268,19 +268,19 @@ fi
 
 # log analytics workspace name
 echo "Enabling Azure Firewall Diagnostics"
-Workspacename1=$hub1name-Sandbox-Log
-Workspacename2=$hub2name-Sandbox-Log
-echo "Azure Firewall Diagnostics Log Deployed"
+workspacename1=$hub1name-Sandbox-Log
+workspacename2=$hub2name-Sandbox-Log
 
 # creating log analytics workspaces
-az monitor log-analytics workspace create -g $rg --workspace-name $Workspacename1 --location $location
-az monitor log-analytics workspace create -g $rg --workspace-name $Workspacename2 --location $location
+az monitor log-analytics workspace create -g $rg --workspace-name $workspacename1 --location $location
+az monitor log-analytics workspace create -g $rg --workspace-name $workspacename2 --location $location
+echo "Azure Firewall Diagnostics Log Deployed"
 
 # enabling azure firewall diagnostics
 # az monitor diagnostic-settings show -n toLogAnalytics -g $rg --resource $(az network firewall show --name $hub1name-AzFw --resource-group $rg --query id -o tsv)
 az monitor diagnostic-settings create -n 'toLogAnalytics' \
 --resource $(az network firewall show --name $hub1name-AzFw --resource-group $rg --query id -o tsv) \
---workspace $(az monitor log-analytics workspace show -g $rg --workspace-name $Workspacename1 --query id -o tsv) \
+--workspace $(az monitor log-analytics workspace show -g $rg --workspace-name $workspacename1 --query id -o tsv) \
 --logs '[{"category":"AzureFirewallApplicationRule","Enabled":true}, {"category":"AzureFirewallNetworkRule","Enabled":true}, {"category":"AzureFirewallDnsProxy","Enabled":true}]' \
 --metrics '[{"category": "AllMetrics","enabled": true}]' \
 --output none
@@ -288,7 +288,7 @@ az monitor diagnostic-settings create -n 'toLogAnalytics' \
 # az monitor diagnostic-settings show -n toLogAnalytics -g $rg --resource $(az network firewall show --name $hub2name-AzFw --resource-group $rg --query id -o tsv)
 az monitor diagnostic-settings create -n 'toLogAnalytics' \
 --resource $(az network firewall show --name $hub2name-AzFw --resource-group $rg --query id -o tsv) \
---workspace $(az monitor log-analytics workspace show -g $rg --workspace-name $Workspacename2 --query id -o tsv) \
+--workspace $(az monitor log-analytics workspace show -g $rg --workspace-name $workspacename2 --query id -o tsv) \
 --logs '[{"category":"AzureFirewallApplicationRule","Enabled":true}, {"category":"AzureFirewallNetworkRule","Enabled":true}, {"category":"AzureFirewallDnsProxy","Enabled":true}]' \
 --metrics '[{"category": "AllMetrics","enabled": true}]' \
 --output none
