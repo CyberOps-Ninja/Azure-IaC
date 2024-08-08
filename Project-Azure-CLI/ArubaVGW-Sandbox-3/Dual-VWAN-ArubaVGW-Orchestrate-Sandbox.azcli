@@ -6,7 +6,7 @@ az extension add --name azure-firewall
 az extension update --name virtual-wan
 az extension update --name azure-firewall 
 
-# parameters/variables - can be changed
+# parameters/variables - resource group name and location
 rg="RG-VWAN-2-ArubaVGW-IaC"
 location="eastus"
 # parameters/variables for first vwan, hub, and firewall

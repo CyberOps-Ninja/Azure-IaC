@@ -6,7 +6,7 @@ az extension add --name azure-firewall
 az extension update --name virtual-wan
 az extension update --name azure-firewall 
 
-# parameters and variables - can be changed
+# parameters/variables - resource group name and location
 rg="RG-VWAN-1-ArubaVGW-IaC"
 location="eastus"
 # parameters and variables for vwan, hub, and firewall
@@ -184,11 +184,11 @@ done
 
 # create firewall policy and rules
 echo "Creating Azure Firewall Policy"
-fwpolicyname=$hub1name-FwPolicy #Firewall Policy Name
+fwpolicyname=$hub1name-FwPolicy #firewall policy name
 az network firewall policy create --name $fwpolicyname --resource-group $rg --sku $firewallsku --enable-dns-proxy false --output none
 az network firewall policy rule-collection-group create --name NetworkRuleCollectionGroup --priority 200 --policy-name $fwpolicyname --resource-group $rg --output none
 
-# Adding an Allow ICMP any-to-any firewall rule
+# adding an allow ICMP any-to-any firewall rule
 az network firewall policy rule-collection-group collection add-filter-collection \
   --resource-group $rg \
   --policy-name $fwpolicyname \
@@ -220,13 +220,13 @@ az provider register -n microsoft.insights --accept-terms
  done
 fi
 
-# Log Analytics workspace name
+# log analytics workspace name
 echo "Enabling Azure Firewall Diagnostics"
 workspacename=$hub1name-Sandbox-Log
-echo "Azure Firewall Diagnostics Log Deployed"
 
 # creating log analytics workspaces
 az monitor log-analytics workspace create -g $rg --workspace-name $workspacename --location $location
+echo "Azure Firewall Diagnostics Log Deployed"
 
 # enabling azure firewall diagnostics
 # az monitor diagnostic-settings show -n toLogAnalytics -g $rg --resource $(az network firewall show --name $hub1name-AzFw --resource-group $rg --query id -o tsv)
