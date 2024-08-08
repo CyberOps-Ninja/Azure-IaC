@@ -2,7 +2,7 @@
 
 ## Introduction
 
-To deploy the bare minimal requirements in Azure for an Aruba VGW using Azure CLI and Aruba Central Virtual Gateway Platform. Code contains Resource Group, Virtual Network, Subnet, Network Security Group, and SSH Key pair. The second part of this lab is to take it to the next level. By the following: deploying a dual Virtual WAN, with a single secure hub (Azure Firewall and Policy) in both Virtual WANs, VPN Gateways, three spoke vNets in one vWAN, and three Linux virtual machines are scripted in AzureCLI.
+To deploy the bare minimal requirements in Azure for an Aruba VGW using Azure CLI and Aruba Central Virtual Gateway Platform. Code contains Resource Group, Virtual Network, Subnet, Network Security Group, and SSH Key Pair. The second part of this lab is to take it to the next level. By the following: deploying a dual Virtual WAN, with a single secure hub (Azure Firewall and Policy) in both Virtual WANs, VPN Gateways, three spoke vNets in one vWAN, and three Linux virtual machines are scripted in AzureCLI. Estimated deployment time: 70 minutes to 80 minutes for 27 Azure Resources.
 
 Resource View
 
