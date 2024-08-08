@@ -222,17 +222,17 @@ fi
 
 # Log Analytics workspace name
 echo "Enabling Azure Firewall Diagnostics"
-Workspacename=$hub1name-Sandbox-Log
+workspacename=$hub1name-Sandbox-Log
 echo "Azure Firewall Diagnostics Log Deployed"
 
-# Creating Log Analytics Workspaces
-az monitor log-analytics workspace create -g $rg --workspace-name $Workspacename --location $location
+# creating log analytics workspaces
+az monitor log-analytics workspace create -g $rg --workspace-name $workspacename --location $location
 
 # enabling azure firewall diagnostics
 # az monitor diagnostic-settings show -n toLogAnalytics -g $rg --resource $(az network firewall show --name $hub1name-AzFw --resource-group $rg --query id -o tsv)
 az monitor diagnostic-settings create -n 'toLogAnalytics' \
 --resource $(az network firewall show --name $hub1name-AzFw --resource-group $rg --query id -o tsv) \
---workspace $(az monitor log-analytics workspace show -g $rg --workspace-name $Workspacename --query id -o tsv) \
+--workspace $(az monitor log-analytics workspace show -g $rg --workspace-name $workspacename --query id -o tsv) \
 --logs '[{"category":"AzureFirewallApplicationRule","Enabled":true}, {"category":"AzureFirewallNetworkRule","Enabled":true}, {"category":"AzureFirewallDnsProxy","Enabled":true}]' \
 --metrics '[{"category": "AllMetrics","enabled": true}]' \
 --output none
