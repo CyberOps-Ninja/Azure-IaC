@@ -62,7 +62,7 @@ echo "Creating VWAN Hubs"
 az network vwan create -g $rg -n $vwan1name --branch-to-branch-traffic true --location $location --type Standard --output none
 az network vhub create -g $rg --name $hub1name --address-prefix $address_prefix_hub1 --vwan $vwan1name --location $location --sku Standard --no-wait
 az network vwan create -g $rg -n $vwan2name --branch-to-branch-traffic true --location $location --type Standard --output none
-az network vhub create -g $rg --name $hub2name --address-prefix $address_prefix_hub2 --vwan $vwan1name --location $location --sku Standard --no-wait
+az network vhub create -g $rg --name $hub2name --address-prefix $address_prefix_hub2 --vwan $vwan2name --location $location --sku Standard --no-wait
 echo "VWAN & Hub Deployed"
 
 # create spoke virtual networks
@@ -121,33 +121,33 @@ done
 
 # check hub vnet connections
 echo "Creating Hub1 vNet connections"
-az network vhub connection create -n spoke-$vnetspokename1-connection --remote-vnet $vnetspokename1 -g $rg --vhub-name $hub1name --no-wait
-az network vhub connection create -n spoke-$vnetspokename2-connection --remote-vnet $vnetspokename2 -g $rg --vhub-name $hub1name --no-wait
-az network vhub connection create -n spoke-$vnetspokename3-connection --remote-vnet $vnetspokename3 -g $rg --vhub-name $hub1name --no-wait
+az network vhub connection create -n Spoke-$vnetspokename1-Connection --remote-vnet $vnetspokename1 -g $rg --vhub-name $hub1name --no-wait
+az network vhub connection create -n Spoke-$vnetspokename2-Connection --remote-vnet $vnetspokename2 -g $rg --vhub-name $hub1name --no-wait
+az network vhub connection create -n Spoke-$vnetspokename3-Connection --remote-vnet $vnetspokename3 -g $rg --vhub-name $hub1name --no-wait
 echo "Hub1 vNet Connections Deployed"
 
 # validating provisioning state of each spoke vnet's connection
 prState=''
 while [[ $prState != 'Succeeded' ]];
 do
-    prState=$(az network vhub connection show -n spoke-$vnetspokename1-connection --vhub-name $hub1name -g $rg  --query 'provisioningState' -o tsv)
-    echo "vnet connection spoke-$vnetspokename1-connection provisioningState="$prState
+    prState=$(az network vhub connection show -n Spoke-$vnetspokename1-Connection --vhub-name $hub1name -g $rg  --query 'provisioningState' -o tsv)
+    echo "vnet connection Spoke-$vnetspokename1-Connection provisioningState="$prState
     sleep 5
 done
 
 prState=''
 while [[ $prState != 'Succeeded' ]];
 do
-    prState=$(az network vhub connection show -n spoke-$vnetspokename2-connection --vhub-name $hub1name -g $rg  --query 'provisioningState' -o tsv)
-    echo "vnet connection spoke-$vnetspokename2-connection provisioningState="$prState
+    prState=$(az network vhub connection show -n Spoke-$vnetspokename2-Connection --vhub-name $hub1name -g $rg  --query 'provisioningState' -o tsv)
+    echo "vnet connection Spoke-$vnetspokename2-Connection provisioningState="$prState
     sleep 5
 done
 
 prState=''
 while [[ $prState != 'Succeeded' ]];
 do
-    prState=$(az network vhub connection show -n spoke-$vnetspokename3-connection --vhub-name $hub1name -g $rg  --query 'provisioningState' -o tsv)
-    echo "vnet connection spoke-$vnetspokename3-connection provisioningState="$prState
+    prState=$(az network vhub connection show -n Spoke-$vnetspokename3-Connection --vhub-name $hub1name -g $rg  --query 'provisioningState' -o tsv)
+    echo "vnet connection Spoke-$vnetspokename3-Connection provisioningState="$prState
     sleep 5
 done
 
@@ -209,8 +209,8 @@ done
 
 # create firewall policy and rules
 echo "Creating Azure Firewall Policy"
-fwpolicyname1=$hub1name-fwpolicy #Firewall Policy Name for first Hub
-fwpolicyname2=$hub2name-fwpolicy #Firewall Policy Name for second Hub
+fwpolicyname1=$hub1name-FwPolicy #Firewall Policy Name for first Hub
+fwpolicyname2=$hub2name-FwPolicy #Firewall Policy Name for second Hub
 az network firewall policy create --name $fwpolicyname1 --resource-group $rg --sku $firewallsku --enable-dns-proxy false --output none
 az network firewall policy create --name $fwpolicyname2 --resource-group $rg --sku $firewallsku --enable-dns-proxy false --output none
 az network firewall policy rule-collection-group create --name NetworkRuleCollectionGroup --priority 200 --policy-name $fwpolicyname1 --resource-group $rg --output none
@@ -250,9 +250,9 @@ az network firewall policy rule-collection-group collection add-filter-collectio
 # creates and deploys azure firewalls inside vhubs
 echo "Deploying Azure Firewall inside vHub"
 fwpolicyid1=$(az network firewall policy show --resource-group $rg --name $fwpolicyname1 --query id --output tsv)
-az network firewall create -g $rg -n $hub1name-azfw --sku AZFW_Hub --tier $firewallsku --virtual-hub $hub1name --public-ip-count 1 --firewall-policy $fwpolicyid1 --location $location --output none
+az network firewall create -g $rg -n $hub1name-AzFw --sku AZFW_Hub --tier $firewallsku --virtual-hub $hub1name --public-ip-count 1 --firewall-policy $fwpolicyid1 --location $location --output none
 fwpolicyid2=$(az network firewall policy show --resource-group $rg --name $fwpolicyname2 --query id --output tsv)
-az network firewall create -g $rg -n $hub2name-azfw --sku AZFW_Hub --tier $firewallsku --virtual-hub $hub2name --public-ip-count 1 --firewall-policy $fwpolicyid2 --location $location --output none
+az network firewall create -g $rg -n $hub2name-AzFw --sku AZFW_Hub --tier $firewallsku --virtual-hub $hub2name --public-ip-count 1 --firewall-policy $fwpolicyid2 --location $location --output none
 
 msinsights=$(az provider show -n microsoft.insights --query registrationState -o tsv)
 if [ $msinsights == 'NotRegistered' ] || [ $msinsights == 'Unregistered' ]; then
@@ -266,27 +266,28 @@ az provider register -n microsoft.insights --accept-terms
  done
 fi
 
-# Log Analytics workspace name
+# log analytics workspace name
 echo "Enabling Azure Firewall Diagnostics"
 Workspacename1=$hub1name-Sandbox-Log
 Workspacename2=$hub2name-Sandbox-Log
 echo "Azure Firewall Diagnostics Log Deployed"
 
-# Creating Log Analytics Workspaces
+# creating log analytics workspaces
 az monitor log-analytics workspace create -g $rg --workspace-name $Workspacename1 --location $location
 az monitor log-analytics workspace create -g $rg --workspace-name $Workspacename2 --location $location
 
-# EnablingAzure Firewall diagnostics
-# az monitor diagnostic-settings show -n toLogAnalytics -g $rg --resource $(az network firewall show --name $hub1name-azfw --resource-group $rg --query id -o tsv)
+# enabling azure firewall diagnostics
+# az monitor diagnostic-settings show -n toLogAnalytics -g $rg --resource $(az network firewall show --name $hub1name-AzFw --resource-group $rg --query id -o tsv)
 az monitor diagnostic-settings create -n 'toLogAnalytics' \
---resource $(az network firewall show --name $hub1name-azfw --resource-group $rg --query id -o tsv) \
+--resource $(az network firewall show --name $hub1name-AzFw --resource-group $rg --query id -o tsv) \
 --workspace $(az monitor log-analytics workspace show -g $rg --workspace-name $Workspacename1 --query id -o tsv) \
 --logs '[{"category":"AzureFirewallApplicationRule","Enabled":true}, {"category":"AzureFirewallNetworkRule","Enabled":true}, {"category":"AzureFirewallDnsProxy","Enabled":true}]' \
 --metrics '[{"category": "AllMetrics","enabled": true}]' \
 --output none
 
+# az monitor diagnostic-settings show -n toLogAnalytics -g $rg --resource $(az network firewall show --name $hub2name-AzFw --resource-group $rg --query id -o tsv)
 az monitor diagnostic-settings create -n 'toLogAnalytics' \
---resource $(az network firewall show --name $hub2name-azfw --resource-group $rg --query id -o tsv) \
+--resource $(az network firewall show --name $hub2name-AzFw --resource-group $rg --query id -o tsv) \
 --workspace $(az monitor log-analytics workspace show -g $rg --workspace-name $Workspacename2 --query id -o tsv) \
 --logs '[{"category":"AzureFirewallApplicationRule","Enabled":true}, {"category":"AzureFirewallNetworkRule","Enabled":true}, {"category":"AzureFirewallDnsProxy","Enabled":true}]' \
 --metrics '[{"category": "AllMetrics","enabled": true}]' \
