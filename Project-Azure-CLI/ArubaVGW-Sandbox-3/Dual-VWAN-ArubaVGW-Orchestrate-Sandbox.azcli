@@ -209,14 +209,14 @@ done
 
 # create firewall policy and rules
 echo "Creating Azure Firewall Policy"
-fwpolicyname1=$hub1name-FwPolicy #firewall Policy Name for first Hub
-fwpolicyname2=$hub2name-FwPolicy #firewall Policy Name for second Hub
+fwpolicyname1=$hub1name-FwPolicy #firewall policy name for first Hub
+fwpolicyname2=$hub2name-FwPolicy #firewall policy name for second Hub
 az network firewall policy create --name $fwpolicyname1 --resource-group $rg --sku $firewallsku --enable-dns-proxy false --output none
 az network firewall policy create --name $fwpolicyname2 --resource-group $rg --sku $firewallsku --enable-dns-proxy false --output none
 az network firewall policy rule-collection-group create --name NetworkRuleCollectionGroup --priority 200 --policy-name $fwpolicyname1 --resource-group $rg --output none
 az network firewall policy rule-collection-group create --name NetworkRuleCollectionGroup --priority 200 --policy-name $fwpolicyname2 --resource-group $rg --output none
 
-# Adding an Allow ICMP any-to-any firewall rule
+# adding an allow ICMP any-to-any firewall rule
 az network firewall policy rule-collection-group collection add-filter-collection \
   --resource-group $rg \
   --policy-name $fwpolicyname1 \
