@@ -1,3 +1,4 @@
+#!/bin/bash
 # parameters and variables - can be changed
 rg="RG-ArubaVGW-IaC"
 location="eastus"

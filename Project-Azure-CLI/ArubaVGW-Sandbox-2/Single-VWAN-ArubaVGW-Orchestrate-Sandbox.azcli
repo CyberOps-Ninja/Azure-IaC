@@ -1,3 +1,4 @@
+#!/bin/bash
 # pre-requisites
 echo validating pre-requisites
 az extension add --name virtual-wan 
