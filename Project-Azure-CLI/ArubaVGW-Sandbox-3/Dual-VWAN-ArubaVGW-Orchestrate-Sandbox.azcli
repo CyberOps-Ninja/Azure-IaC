@@ -51,7 +51,7 @@ vmname2="VM-Sandbox-P6"
 vmname3="VM-Sandbox-InfraMgmt"
 
 # parameters/varialbes for my public IP
-mypip=$(curl -4 ifconfig.io -s)
+myazpip=$(curl -4 ifconfig.io -s)
 
 # create resource group in EastUS region
 echo "Creating Resource Group"
