@@ -78,16 +78,16 @@ echo "Spoke VNets and Subnets Deployed"
 
 # create nsg
 echo "Creating NSGs"
-az network nsg create --resource-group $rg --name $nsgname1 --location $location -o none
-az network nsg create --resource-group $rg --name $nsgname2 --location $location -o none
-az network nsg create --resource-group $rg --name $nsgname3 --location $location -o none
+az network nsg create --resource-group $rg --name $nsgname1
+az network nsg create --resource-group $rg --name $nsgname2
+az network nsg create --resource-group $rg --name $nsgname3
 echo "NSGs Deployed"
 
 # update nsg rules
 echo "Creating NSG Rules"
-az network nsg create -g $rg $nsgname1 -default-allow-ssh" --direction Inbound -priority 100 --source-address-prefixes $myazpip --source-port-ranges '*' --destination-address-prefixes '*' --destination-port-ranges 22 --access Allow --protocol Tcp --description "Allow inbound SSH" --output none
-az network nsg create -g $rg $nsgname2 -default-allow-ssh" --direction Inbound -priority 100 --source-address-prefixes $myazpip --source-port-ranges '*' --destination-address-prefixes '*' --destination-port-ranges 22 --access Allow --protocol Tcp --description "Allow inbound SSH" --output none
-az network nsg create -g $rg $nsgname3 -default-allow-ssh" --direction Inbound -priority 100 --source-address-prefixes $myazpip --source-port-ranges '*' --destination-address-prefixes '*' --destination-port-ranges 22 --access Allow --protocol Tcp --description "Allow inbound SSH" --output none
+az network nsg create -g $rg --nsg-name $nsgname1 -default-allow-ssh" --direction Inbound -priority 100 --source-address-prefixes $myazpip --source-port-ranges '*' --destination-address-prefixes '*' --destination-port-ranges 22 --access Allow --protocol Tcp --description "Allow inbound SSH" --output none
+az network nsg create -g $rg --nsg-name $nsgname2 -default-allow-ssh" --direction Inbound -priority 100 --source-address-prefixes $myazpip --source-port-ranges '*' --destination-address-prefixes '*' --destination-port-ranges 22 --access Allow --protocol Tcp --description "Allow inbound SSH" --output none
+az network nsg create -g $rg --nsg-name $nsgname3 -default-allow-ssh" --direction Inbound -priority 100 --source-address-prefixes $myazpip --source-port-ranges '*' --destination-address-prefixes '*' --destination-port-ranges 22 --access Allow --protocol Tcp --description "Allow inbound SSH" --output none
 echo "NSG Rules Deployed"
 
 # create vm in spoke vnets
