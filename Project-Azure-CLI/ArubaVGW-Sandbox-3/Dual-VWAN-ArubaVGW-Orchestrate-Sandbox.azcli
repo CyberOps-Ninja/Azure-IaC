@@ -85,9 +85,50 @@ echo "NSGs Deployed"
 
 # update nsg rules
 echo "Creating NSG Rules"
-az network nsg rule create --resource-group $rg --nsg-name $nsgname1 --name "default-allow-ssh" --direction Inbound --priority 100 --source-address-prefixes $myazpip --source-port-ranges '*' --destination-address-prefixes '*' --destination-port-ranges 22 --access Allow --protocol Tcp --description "Allow inbound SSH" --output none
-az network nsg rule create --resource-group $rg --nsg-name $nsgname2 --name "default-allow-ssh" --direction Inbound --priority 100 --source-address-prefixes $myazpip --source-port-ranges '*' --destination-address-prefixes '*' --destination-port-ranges 22 --access Allow --protocol Tcp --description "Allow inbound SSH" --output none
-az network nsg rule create --resource-group $rg --nsg-name $nsgname3 --name "default-allow-ssh" --direction Inbound --priority 100 --source-address-prefixes $myazpip --source-port-ranges '*' --destination-address-prefixes '*' --destination-port-ranges 22 --access Allow --protocol Tcp --description "Allow inbound SSH" --output none
+az network nsg rule create \
+  --resource-group $rg \
+  --nsg-name $nsgname1 \
+  --name "Allow-My-Az-PIP-SSH" \
+  --direction Inbound \
+  --priority 100 \
+  --source-address-prefixes $myazpip \
+  --source-port-ranges '*' \
+  --destination-address-prefixes '*' \
+  --destination-port-ranges 22 \
+  --access Allow \
+  --protocol Tcp \
+  --description "Allow inbound SSH" \
+  --output none
+
+az network nsg rule create \
+  --resource-group $rg \
+  --nsg-name $nsgname2 \
+  --name "Allow-My-Az-PIP-SSH" \
+  --direction Inbound \
+  --priority 100 \
+  --source-address-prefixes $myazpip \
+  --source-port-ranges '*' \
+  --destination-address-prefixes '*' \
+  --destination-port-ranges 22 \
+  --access Allow \
+  --protocol Tcp \
+  --description "Allow inbound SSH" \
+  --output none
+
+az network nsg rule create \
+  --resource-group $rg \
+  --nsg-name $nsgname3 \
+  --name "Allow-My-Az-PIP-SSH" \
+  --direction Inbound \
+  --priority 100 \
+  --source-address-prefixes $myazpip \
+  --source-port-ranges '*' \
+  --destination-address-prefixes '*' \
+  --destination-port-ranges 22 \
+  --access Allow \
+  --protocol Tcp \
+  --description "Allow inbound SSH" \
+  --output none
 echo "NSG Rules Deployed"
 
 # create vm in spoke vnets
@@ -266,7 +307,7 @@ az network firewall policy rule-collection-group collection add-filter-collectio
   --output none
 
 # creates and deploys azure firewalls inside vhubs
-echo "Deploying Azure Firewall inside vHub"
+echo "Configuring Azure Firewall inside vHub"
 fwpolicyid1=$(az network firewall policy show --resource-group $rg --name $fwpolicyname1 --query id --output tsv)
 az network firewall create -g $rg -n $hub1name-AzFw --sku AZFW_Hub --tier $firewallsku --virtual-hub $hub1name --public-ip-count 1 --firewall-policy $fwpolicyid1 --location $location --output none
 fwpolicyid2=$(az network firewall policy show --resource-group $rg --name $fwpolicyname2 --query id --output tsv)
@@ -283,6 +324,7 @@ az provider register -n microsoft.insights --accept-terms
     sleep 5
  done
 fi
+echo "Azure Firewall Deployed inside vHub"
 
 # log analytics workspace name
 echo "Enabling Azure Firewall Diagnostics"
