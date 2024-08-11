@@ -1,3 +1,4 @@
+#!/bin/bash
 # pre-requisites
 echo validating pre-requisites
 az extension add --name virtual-wan 
@@ -45,12 +46,12 @@ sshkeynamevgw="SSH-Key-Sandbox-ArubaVGW"
 username="azurelinuxadmin"
 password="Az-Linux@R00t"
 vmsize=Standard_DS1_v2
-vmname1="VMSandboxE1"
-vmname2="VMSandboxP6"
-vmname3="VMSandboxInfraMgmt"
+vmname1="VM-Sandbox-E1"
+vmname2="VM-Sandbox-P6"
+vmname3="VM-Sandbox-InfraMgmt"
 
 # parameters/varialbes for my public IP
-mypip=$(curl -4 ifconfig.io -s)
+myazpip=$(curl -4 ifconfig.io -s)
 
 # create resource group in EastUS region
 echo "Creating Resource Group"
@@ -72,11 +73,25 @@ az network vnet create --address-prefixes $address_prefix_sp_vnet2 -n $vnetspoke
 az network vnet create --address-prefixes $address_prefix_sp_vnet3 -n $vnetspokename3 -g $rg -l $location --subnet-name $subnetname3 --subnet-prefixes $address_prefix_sp_vnet3 --output none
 echo "Spoke VNets and Subnets Deployed"
 
+# create nsg
+echo "Creating NSGs"
+az network nsg create --resource-group $rg --name $nsgname1 --location $location -o none
+az network nsg create --resource-group $rg --name $nsgname2 --location $location -o none
+az network nsg create --resource-group $rg --name $nsgname3 --location $location -o none
+echo "NSGs Deployed"
+
+# update nsg rules
+echo "Creating NSG Rules"
+az network nsg create -g $rg $nsgname1 -default-allow-ssh" --direction Inbound -priority 100 --source-address-prefixes $myazpip --source-port-ranges '*' --destination-address-prefixes '*' --destination-port-ranges 22 --access Allow --protocol Tcp --description "Allow inbound SSH" --output none
+az network nsg create -g $rg $nsgname2 -default-allow-ssh" --direction Inbound -priority 100 --source-address-prefixes $myazpip --source-port-ranges '*' --destination-address-prefixes '*' --destination-port-ranges 22 --access Allow --protocol Tcp --description "Allow inbound SSH" --output none
+az network nsg create -g $rg $nsgname3 -default-allow-ssh" --direction Inbound -priority 100 --source-address-prefixes $myazpip --source-port-ranges '*' --destination-address-prefixes '*' --destination-port-ranges 22 --access Allow --protocol Tcp --description "Allow inbound SSH" --output none
+echo "NSG Rules Deployed"
+
 # create vm in spoke vnets
 echo "Creating VMs in Spoke VNets"
-az vm create -n $vmname1 -g $rg --image Ubuntu2204 --public-ip-sku Standard --size $vmsize -l $location --subnet $subnetname1 --vnet-name $vnetspokename1 --admin-username $username --admin-password $password
-az vm create -n $vmname2 -g $rg --image Ubuntu2204 --public-ip-sku Standard --size $vmsize -l $location --subnet $subnetname2 --vnet-name $vnetspokename2 --admin-username $username --admin-password $password
-az vm create -n $vmname3 -g $rg --image Ubuntu2204 --public-ip-sku Standard --size $vmsize -l $location --subnet $subnetname3 --vnet-name $vnetspokename3 --admin-username $username --admin-password $password
+az vm create -n $vmname1 -g $rg --image Ubuntu2204 --public-ip-sku Standard --size $vmsize -l $location --subnet $subnetname1 --vnet-name $vnetspokename1 --admin-username $username --admin-password $password --nsg $nsgname1 --no-wait
+az vm create -n $vmname2 -g $rg --image Ubuntu2204 --public-ip-sku Standard --size $vmsize -l $location --subnet $subnetname2 --vnet-name $vnetspokename2 --admin-username $username --admin-password $password --nsg $nsgname2 --no-wait
+az vm create -n $vmname3 -g $rg --image Ubuntu2204 --public-ip-sku Standard --size $vmsize -l $location --subnet $subnetname3 --vnet-name $vnetspokename3 --admin-username $username --admin-password $password --nsg $nsgname3 --no-wait
 echo "VMs Deployed in Spoke VNets"
 
 # create ArubaVGW VNet

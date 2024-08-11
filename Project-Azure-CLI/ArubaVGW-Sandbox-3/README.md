@@ -61,9 +61,12 @@ sshkeynamevgw="SSH-Key-Sandbox-ArubaVGW"
 username="azurelinuxadmin"
 password="Az-Linux@R00t"
 vmsize=Standard_DS1_v2
-vmname1="VMSandboxE1"
-vmname2="VMSandboxP6"
-vmname3="VMSandboxInfraMgmt"
+vmname1="VM-Sandbox-E1"
+vmname2="VM-Sandbox-P6"
+vmname3="VM-Sandbox-InfraMgmt"
+nsgname1="NSG-Sandbox-E1"
+nsgname2="NSG-Sandbox-P6"
+nsgname3="NSG-Sandbox-InfraMgmt"
 ```
 
 ### Clean-up
