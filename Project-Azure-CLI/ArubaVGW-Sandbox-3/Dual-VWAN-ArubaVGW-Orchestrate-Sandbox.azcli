@@ -171,42 +171,42 @@ done
 
 # create vhub vpn gateway
 echo "Creating vHub VPN Gateway"
-az network vpn-gateway create -n $hub1name-VPNGW -g $rg --location $location --vhub $hub1name --no-wait
-az network vpn-gateway create -n $hub2name-VPNGW -g $rg --location $location --vhub $hub2name --no-wait
+az network vpn-gateway create -n VPNGW-$hub1name -g $rg --location $location --vhub $hub1name --no-wait
+az network vpn-gateway create -n VPNGW-$hub2name -g $rg --location $location --vhub $hub2name --no-wait
 echo "vHub VPN Gateway Deployed"
 
 # vwan hub vpn gateway status
 echo "Validating vHubs VPN Gateways Provisioning"
-prState=$(az network vpn-gateway show -g $rg -n $hub1name-VPNGW --query provisioningState -o tsv)
+prState=$(az network vpn-gateway show -g $rg -n VPNGW-$hub1name --query provisioningState -o tsv)
 if [[ $prState == 'Failed' ]];
 then
     echo "VPN Gateway is in fail state. Deleting and rebuilding."
-    az network vpn-gateway delete -n $hub1name-VPNGW -g $rg
-    az network vpn-gateway create -n $hub1name-VPNGW -g $rg --location $location --vhub $hub1name --no-wait
+    az network vpn-gateway delete -n VPNGW-$hub1name -g $rg
+    az network vpn-gateway create -n VPNGW-$hub1name -g $rg --location $location --vhub $hub1name --no-wait
     sleep 5
 else
     prState=''
     while [[ $prState != 'Succeeded' ]];
     do
-        prState=$(az network vpn-gateway show -g $rg -n $hub1name-VPNGW --query provisioningState -o tsv)
-        echo $hub1name-VPNGW "provisioningState="$prState
+        prState=$(az network vpn-gateway show -g $rg -n VPNGW-$hub1name --query provisioningState -o tsv)
+        echo VPNGW-$hub1name "provisioningState="$prState
         sleep 5
     done
 fi
 
-prState=$(az network vpn-gateway show -g $rg -n $hub2name-VPNGW --query provisioningState -o tsv)
+prState=$(az network vpn-gateway show -g $rg -n VPNGW-$hub2name --query provisioningState -o tsv)
 if [[ $prState == 'Failed' ]];
 then
     echo "VPN Gateway is in fail state. Deleting and rebuilding."
-    az network vpn-gateway delete -n $hub2name-VPNGW -g $rg
-    az network vpn-gateway create -n $hub2name-VPNGW -g $rg --location $location --vhub $hub2name --no-wait
+    az network vpn-gateway delete -n VPNGW-$hub2name -g $rg
+    az network vpn-gateway create -n VPNGW-$hub2name -g $rg --location $location --vhub $hub2name --no-wait
     sleep 5
 else
     prState=''
     while [[ $prState != 'Succeeded' ]];
     do
-        prState=$(az network vpn-gateway show -g $rg -n $hub2name-VPNGW --query provisioningState -o tsv)
-        echo $hub2name-VPNGW "provisioningState="$prState
+        prState=$(az network vpn-gateway show -g $rg -n VPNGW-$hub2name --query provisioningState -o tsv)
+        echo VPNGW-$hub2name "provisioningState="$prState
         sleep 5
     done
 fi
