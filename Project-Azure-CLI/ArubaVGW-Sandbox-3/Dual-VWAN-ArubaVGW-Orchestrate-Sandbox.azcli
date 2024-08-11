@@ -49,6 +49,9 @@ vmsize=Standard_DS1_v2
 vmname1="VM-Sandbox-E1"
 vmname2="VM-Sandbox-P6"
 vmname3="VM-Sandbox-InfraMgmt"
+nsgname1="NSG-Sandbox-E1"
+nsgname2="NSG-Sandbox-P6"
+nsgname3="NSG-Sandbox-InfraMgmt"
 
 # parameters/varialbes for my public IP
 myazpip=$(curl -4 ifconfig.io -s)
