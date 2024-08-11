@@ -76,6 +76,12 @@ az network vnet create --address-prefixes $address_prefix_sp_vnet2 -n $vnetspoke
 az network vnet create --address-prefixes $address_prefix_sp_vnet3 -n $vnetspokename3 -g $rg -l $location --subnet-name $subnetname3 --subnet-prefixes $address_prefix_sp_vnet3 --output none
 echo "Spoke VNets and Subnets Deployed"
 
+# crate public ip for vms
+echo "Creating PIP for VMs"
+az network public-ip create --resource-group $rg --name PIP-$vmname1 --version IPv4 --allocation-method static -sku Standard
+az network public-ip create --resource-group $rg --name PIP-$vmname2 --version IPv4 --allocation-method static -sku Standard
+az network public-ip create --resource-group $rg --name PIP-$vmname3 --version IPv4 --allocation-method static -sku Standard
+
 # create nsg
 echo "Creating NSGs"
 az network nsg create --resource-group $rg --name $nsgname1
@@ -130,6 +136,11 @@ az network nsg rule create \
   --description "Allow inbound SSH" \
   --output none
 echo "NSG Rules Deployed"
+
+
+
+
+
 
 # create vm in spoke vnets
 echo "Creating VMs in Spoke VNets"
