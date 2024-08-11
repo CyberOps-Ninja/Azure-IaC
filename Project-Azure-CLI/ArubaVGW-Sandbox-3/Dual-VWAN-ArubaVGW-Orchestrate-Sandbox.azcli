@@ -280,8 +280,8 @@ done
 
 # create firewall policy and rules
 echo "Creating Azure Firewall Policy"
-fwpolicyname1=$hub1name-FwPolicy #firewall policy name for first Hub
-fwpolicyname2=$hub2name-FwPolicy #firewall policy name for second Hub
+fwpolicyname1=FwPolicy-$hub1name #firewall policy name for first Hub
+fwpolicyname2=FwPolicy-$hub2name #firewall policy name for second Hub
 az network firewall policy create --name $fwpolicyname1 --resource-group $rg --sku $firewallsku --enable-dns-proxy false --output none
 az network firewall policy create --name $fwpolicyname2 --resource-group $rg --sku $firewallsku --enable-dns-proxy false --output none
 az network firewall policy rule-collection-group create --name NetworkRuleCollectionGroup --priority 200 --policy-name $fwpolicyname1 --resource-group $rg --output none
