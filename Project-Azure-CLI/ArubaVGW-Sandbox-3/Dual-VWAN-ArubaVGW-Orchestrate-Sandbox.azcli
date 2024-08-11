@@ -81,6 +81,7 @@ echo "Creating PIP for VMs"
 az network public-ip create --resource-group $rg --name PIP-$vmname1 --version IPv4 --allocation-method static -sku Standard
 az network public-ip create --resource-group $rg --name PIP-$vmname2 --version IPv4 --allocation-method static -sku Standard
 az network public-ip create --resource-group $rg --name PIP-$vmname3 --version IPv4 --allocation-method static -sku Standard
+echo "PIPs Deployed"
 
 # create nsg
 echo "Creating NSGs"
@@ -339,8 +340,8 @@ echo "Azure Firewall Deployed inside vHub"
 
 # log analytics workspace name
 echo "Enabling Azure Firewall Diagnostics"
-workspacename1=$hub1name-Sandbox-Log
-workspacename2=$hub2name-Sandbox-Log
+workspacename1=Log-Sandbox-$hub1name
+workspacename2=Log-Sandbox-$hub2name
 
 # creating log analytics workspaces
 az monitor log-analytics workspace create -g $rg --workspace-name $workspacename1 --location $location
