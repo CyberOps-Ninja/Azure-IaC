@@ -321,9 +321,9 @@ az network firewall policy rule-collection-group collection add-filter-collectio
 # creates and deploys azure firewalls inside vhubs
 echo "Configuring Azure Firewall inside vHub"
 fwpolicyid1=$(az network firewall policy show --resource-group $rg --name $fwpolicyname1 --query id --output tsv)
-az network firewall create -g $rg -n $hub1name-AzFw --sku AZFW_Hub --tier $firewallsku --virtual-hub $hub1name --public-ip-count 1 --firewall-policy $fwpolicyid1 --location $location --output none
+az network firewall create -g $rg -n AzFw-$hub1name --sku AZFW_Hub --tier $firewallsku --virtual-hub $hub1name --public-ip-count 1 --firewall-policy $fwpolicyid1 --location $location --output none
 fwpolicyid2=$(az network firewall policy show --resource-group $rg --name $fwpolicyname2 --query id --output tsv)
-az network firewall create -g $rg -n $hub2name-AzFw --sku AZFW_Hub --tier $firewallsku --virtual-hub $hub2name --public-ip-count 1 --firewall-policy $fwpolicyid2 --location $location --output none
+az network firewall create -g $rg -n AzFw-$hub2name --sku AZFW_Hub --tier $firewallsku --virtual-hub $hub2name --public-ip-count 1 --firewall-policy $fwpolicyid2 --location $location --output none
 
 msinsights=$(az provider show -n microsoft.insights --query registrationState -o tsv)
 if [ $msinsights == 'NotRegistered' ] || [ $msinsights == 'Unregistered' ]; then
@@ -349,17 +349,17 @@ az monitor log-analytics workspace create -g $rg --workspace-name $workspacename
 echo "Azure Firewall Diagnostics Log Deployed"
 
 # enabling azure firewall diagnostics
-# az monitor diagnostic-settings show -n toLogAnalytics -g $rg --resource $(az network firewall show --name $hub1name-AzFw --resource-group $rg --query id -o tsv)
+# az monitor diagnostic-settings show -n toLogAnalytics -g $rg --resource $(az network firewall show --name AzFw-$hub1name --resource-group $rg --query id -o tsv)
 az monitor diagnostic-settings create -n 'toLogAnalytics' \
---resource $(az network firewall show --name $hub1name-AzFw --resource-group $rg --query id -o tsv) \
+--resource $(az network firewall show --name AzFw-$hub1name --resource-group $rg --query id -o tsv) \
 --workspace $(az monitor log-analytics workspace show -g $rg --workspace-name $workspacename1 --query id -o tsv) \
 --logs '[{"category":"AzureFirewallApplicationRule","Enabled":true}, {"category":"AzureFirewallNetworkRule","Enabled":true}, {"category":"AzureFirewallDnsProxy","Enabled":true}]' \
 --metrics '[{"category": "AllMetrics","enabled": true}]' \
 --output none
 
-# az monitor diagnostic-settings show -n toLogAnalytics -g $rg --resource $(az network firewall show --name $hub2name-AzFw --resource-group $rg --query id -o tsv)
+# az monitor diagnostic-settings show -n toLogAnalytics -g $rg --resource $(az network firewall show --name AzFw-$hub2name --resource-group $rg --query id -o tsv)
 az monitor diagnostic-settings create -n 'toLogAnalytics' \
---resource $(az network firewall show --name $hub2name-AzFw --resource-group $rg --query id -o tsv) \
+--resource $(az network firewall show --name AzFw-$hub2name --resource-group $rg --query id -o tsv) \
 --workspace $(az monitor log-analytics workspace show -g $rg --workspace-name $workspacename2 --query id -o tsv) \
 --logs '[{"category":"AzureFirewallApplicationRule","Enabled":true}, {"category":"AzureFirewallNetworkRule","Enabled":true}, {"category":"AzureFirewallDnsProxy","Enabled":true}]' \
 --metrics '[{"category": "AllMetrics","enabled": true}]' \
