@@ -327,8 +327,8 @@ done
 
 # create firewall policy and rules
 echo "Creating Azure Firewall Policy"
-fwpolicyname1=FwPolicy-$hub1name #firewall policy name for first Hub
-fwpolicyname2=FwPolicy-$hub2name #firewall policy name for second Hub
+fwpolicyname1="FwPolicy-$hub1name" # firewall policy name for first Hub
+fwpolicyname2="FwPolicy-$hub2name" # firewall policy name for second Hub
 az network firewall policy create --name $fwpolicyname1 --resource-group $rg --sku $firewallsku --enable-dns-proxy false --output none
 az network firewall policy create --name $fwpolicyname2 --resource-group $rg --sku $firewallsku --enable-dns-proxy false --output none
 az network firewall policy rule-collection-group create --name NetworkRuleCollectionGroup --priority 200 --policy-name $fwpolicyname1 --resource-group $rg --output none
@@ -345,7 +345,7 @@ az network firewall policy rule-collection-group collection add-filter-collectio
   --action Allow \
   --ip-protocols "ICMP" \
   --source-addresses "*" \
-  --destination-addresses  "*" \
+  --destination-addresses "*" \
   --destination-ports "*" \
   --collection-priority 100 \
   --output none
@@ -360,7 +360,7 @@ az network firewall policy rule-collection-group collection add-filter-collectio
   --action Allow \
   --ip-protocols "ICMP" \
   --source-addresses "*" \
-  --destination-addresses  "*" \
+  --destination-addresses "*" \
   --destination-ports "*" \
   --collection-priority 100 \
   --output none
@@ -387,8 +387,8 @@ echo "Azure Firewall Deployed inside vHub"
 
 # log analytics workspace name
 echo "Enabling Azure Firewall Diagnostics"
-workspacename1=Log-Sandbox-$hub1name
-workspacename2=Log-Sandbox-$hub2name
+workspacename1="Log-Sandbox-$hub1name"
+workspacename2="Log-Sandbox-$hub2name"
 
 # creating log analytics workspaces
 az monitor log-analytics workspace create -g $rg --workspace-name $workspacename1 --location $location
