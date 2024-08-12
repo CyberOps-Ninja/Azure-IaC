@@ -78,9 +78,9 @@ echo "Spoke VNets and Subnets Deployed"
 
 # crate public ip for vms
 echo "Creating PIP for VMs"
-az network public-ip create --resource-group $rg --name PIP-$vmname1 --version IPv4 --allocation-method static -sku Standard
-az network public-ip create --resource-group $rg --name PIP-$vmname2 --version IPv4 --allocation-method static -sku Standard
-az network public-ip create --resource-group $rg --name PIP-$vmname3 --version IPv4 --allocation-method static -sku Standard
+az network public-ip create --resource-group $rg --name PIP-$vmname1 --version IPv4 --allocation-method static --sku Standard --zone 1 2 3
+az network public-ip create --resource-group $rg --name PIP-$vmname2 --version IPv4 --allocation-method static --sku Standard --zone 1 2 3
+az network public-ip create --resource-group $rg --name PIP-$vmname3 --version IPv4 --allocation-method static --sku Standard --zone 1 2 3
 echo "PIPs Deployed"
 
 # create nsg
@@ -147,9 +147,9 @@ echo "NSG Updated & Associated to VM Subnet"
 
 # create nic for vm
 echo "Creating NICs for VMs"
-az network nic create --resource-group $rg --name NIC-$vmname1 --subnet $subnetname1 --network-security-group $nsgname1
-az network nic create --resource-group $rg --name NIC-$vmname2 --subnet $subnetname2 --network-security-group $nsgname2
-az network nic create --resource-group $rg --name NIC-$vmname3 --subnet $subnetname3 --network-security-group $nsgname3
+az network nic create --resource-group $rg --name NIC-$vmname1 --vnet-name $vnetspokename1 --subnet $subnetname1 --network-security-group $nsgname1
+az network nic create --resource-group $rg --name NIC-$vmname2 --vnet-name $vnetspokename2 --subnet $subnetname2 --network-security-group $nsgname2
+az network nic create --resource-group $rg --name NIC-$vmname3 --vnet-name $vnetspokename3 --subnet $subnetname3 --network-security-group $nsgname3
 echo "VMs NICs Deployed"
 
 # create vm in spoke vnets
