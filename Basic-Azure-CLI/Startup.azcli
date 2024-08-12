@@ -6,3 +6,11 @@ az account show
 
 # to change subscriptions
 az account set --subscription "SubscriptionName"
+
+# to list Azure Resources
+az resource list --resource-group "ResourceName"
+
+# add output & with the following cmds: table, json, yaml, or none
+# colar json - jsonc
+# color yaml - yamlc
+az resource list --resource-group "ResourceName" --output table

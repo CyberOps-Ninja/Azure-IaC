@@ -76,6 +76,13 @@ az network vnet create --address-prefixes $address_prefix_sp_vnet2 -n $vnetspoke
 az network vnet create --address-prefixes $address_prefix_sp_vnet3 -n $vnetspokename3 -g $rg -l $location --subnet-name $subnetname3 --subnet-prefixes $address_prefix_sp_vnet3 --output none
 echo "Spoke VNets and Subnets Deployed"
 
+# crate public ip for vms
+echo "Creating PIP for VMs"
+az network public-ip create --resource-group $rg --name PIP-$vmname1 --version IPv4 --allocation-method static --sku Standard --zone 1 2 3
+az network public-ip create --resource-group $rg --name PIP-$vmname2 --version IPv4 --allocation-method static --sku Standard --zone 1 2 3
+az network public-ip create --resource-group $rg --name PIP-$vmname3 --version IPv4 --allocation-method static --sku Standard --zone 1 2 3
+echo "PIPs Deployed"
+
 # create nsg
 echo "Creating NSGs"
 az network nsg create --resource-group $rg --name $nsgname1
@@ -85,16 +92,100 @@ echo "NSGs Deployed"
 
 # update nsg rules
 echo "Creating NSG Rules"
-az network nsg rule create --resource-group $rg --nsg-name $nsgname1 --name "default-allow-ssh" --direction Inbound --priority 100 --source-address-prefixes $myazpip --source-port-ranges '*' --destination-address-prefixes '*' --destination-port-ranges 22 --access Allow --protocol Tcp --description "Allow inbound SSH" --output none
-az network nsg rule create --resource-group $rg --nsg-name $nsgname2 --name "default-allow-ssh" --direction Inbound --priority 100 --source-address-prefixes $myazpip --source-port-ranges '*' --destination-address-prefixes '*' --destination-port-ranges 22 --access Allow --protocol Tcp --description "Allow inbound SSH" --output none
-az network nsg rule create --resource-group $rg --nsg-name $nsgname3 --name "default-allow-ssh" --direction Inbound --priority 100 --source-address-prefixes $myazpip --source-port-ranges '*' --destination-address-prefixes '*' --destination-port-ranges 22 --access Allow --protocol Tcp --description "Allow inbound SSH" --output none
+az network nsg rule create \
+  --resource-group $rg \
+  --nsg-name $nsgname1 \
+  --name "Allow-My-Az-PIP-SSH" \
+  --direction Inbound \
+  --priority 100 \
+  --source-address-prefixes $myazpip \
+  --source-port-ranges '*' \
+  --destination-address-prefixes '*' \
+  --destination-port-ranges 22 \
+  --access Allow \
+  --protocol Tcp \
+  --description "Allow inbound SSH" \
+  --output none
+
+az network nsg rule create \
+  --resource-group $rg \
+  --nsg-name $nsgname2 \
+  --name "Allow-My-Az-PIP-SSH" \
+  --direction Inbound \
+  --priority 100 \
+  --source-address-prefixes $myazpip \
+  --source-port-ranges '*' \
+  --destination-address-prefixes '*' \
+  --destination-port-ranges 22 \
+  --access Allow \
+  --protocol Tcp \
+  --description "Allow inbound SSH" \
+  --output none
+
+az network nsg rule create \
+  --resource-group $rg \
+  --nsg-name $nsgname3 \
+  --name "Allow-My-Az-PIP-SSH" \
+  --direction Inbound \
+  --priority 100 \
+  --source-address-prefixes $myazpip \
+  --source-port-ranges '*' \
+  --destination-address-prefixes '*' \
+  --destination-port-ranges 22 \
+  --access Allow \
+  --protocol Tcp \
+  --description "Allow inbound SSH" \
+  --output none
 echo "NSG Rules Deployed"
+
+# associate nsg to subnet
+echo "Associating & Updating NSGs to VMs Subnet"
+az network vnet subnet update --resource-group $rg --vnet-name $vnetspokename1 --name $subnetname1 --network-security-group $nsgname1
+az network vnet subnet update --resource-group $rg --vnet-name $vnetspokename2 --name $subnetname2 --network-security-group $nsgname2
+az network vnet subnet update --resource-group $rg --vnet-name $vnetspokename3 --name $subnetname3 --network-security-group $nsgname3
+echo "NSG Updated & Associated to VM Subnet"
+
+# create nic for vm
+echo "Creating NICs for VMs"
+az network nic create --resource-group $rg --name NIC-$vmname1 --vnet-name $vnetspokename1 --subnet $subnetname1 --network-security-group $nsgname1 --public-ip-address PIP-$vmname1
+az network nic create --resource-group $rg --name NIC-$vmname2 --vnet-name $vnetspokename2 --subnet $subnetname2 --network-security-group $nsgname2 --public-ip-address PIP-$vmname2
+az network nic create --resource-group $rg --name NIC-$vmname3 --vnet-name $vnetspokename3 --subnet $subnetname3 --network-security-group $nsgname3 --public-ip-address PIP-$vmname3
+echo "VMs NICs Deployed"
 
 # create vm in spoke vnets
 echo "Creating VMs in Spoke VNets"
-az vm create -n $vmname1 -g $rg --image Ubuntu2204 --public-ip-sku Standard --size $vmsize -l $location --subnet $subnetname1 --vnet-name $vnetspokename1 --admin-username $username --admin-password $password --nsg $nsgname1 --no-wait
-az vm create -n $vmname2 -g $rg --image Ubuntu2204 --public-ip-sku Standard --size $vmsize -l $location --subnet $subnetname2 --vnet-name $vnetspokename2 --admin-username $username --admin-password $password --nsg $nsgname2 --no-wait
-az vm create -n $vmname3 -g $rg --image Ubuntu2204 --public-ip-sku Standard --size $vmsize -l $location --subnet $subnetname3 --vnet-name $vnetspokename3 --admin-username $username --admin-password $password --nsg $nsgname3 --no-wait
+az vm create \
+  -g $rg \
+  -n $vmname1 \
+  --image Ubuntu2204 \
+  --size $vmsize \
+  -l $location \
+  --nics NIC-$vmname1 \
+  --admin-username $username \
+  --admin-password $password \
+  --no-wait
+
+az vm create \
+  -g $rg \
+  -n $vmname2 \
+  --image Ubuntu2204 \
+  --size $vmsize \
+  -l $location \
+  --nics NIC-$vmname2 \
+  --admin-username $username \
+  --admin-password $password \
+  --no-wait
+
+az vm create \
+  -g $rg \
+  -n $vmname3 \
+  --image Ubuntu2204 \
+  --size $vmsize \
+  -l $location \
+  --nics NIC-$vmname3 \
+  --admin-username $username \
+  --admin-password $password \
+  --no-wait
 echo "VMs Deployed in Spoke VNets"
 
 # create ArubaVGW VNet
@@ -109,9 +200,9 @@ echo "ArubaVGW NSG Deployed"
 
 # create rules in ArubaVGW NSG
 echo "Creating ArubaVGW NSG Rules"
-az network nsg rule create --resource-group $rg --nsg-name $nsgnamevgw --name Allow-Port-4500 --protocol Tcp --priority 100 --destination-port-ranges 4500
-az network nsg rule create --resource-group $rg --nsg-name $nsgnamevgw --name Allow-Port-22 --protocol Tcp --priority 110 --destination-port-ranges 22
-az network nsg rule create --resource-group $rg --nsg-name $nsgnamevgw --name Allow-Port-443 --protocol Tcp --priority 120 --destination-port-ranges 443
+az network nsg rule create --resource-group $rg --nsg-name $nsgnamevgw --name Allow-Port-4500 --protocol Tcp --priority 100 --destination-port-ranges 4500 --access Allow --direction Inbound
+az network nsg rule create --resource-group $rg --nsg-name $nsgnamevgw --name Allow-Port-22 --protocol Tcp --priority 110 --destination-port-ranges 22 --access Allow --direction Inbound
+az network nsg rule create --resource-group $rg --nsg-name $nsgnamevgw --name Allow-Port-443 --protocol Tcp --priority 120 --destination-port-ranges 443 --access Allow --direction Inbound
 echo "ArubaVGW NSG Rules Deployed"
 
 # create ssh key for ArubaVGW
@@ -171,42 +262,42 @@ done
 
 # create vhub vpn gateway
 echo "Creating vHub VPN Gateway"
-az network vpn-gateway create -n $hub1name-VPNGW -g $rg --location $location --vhub $hub1name --no-wait
-az network vpn-gateway create -n $hub2name-VPNGW -g $rg --location $location --vhub $hub2name --no-wait
+az network vpn-gateway create -n VPNGW-$hub1name -g $rg --location $location --vhub $hub1name --no-wait
+az network vpn-gateway create -n VPNGW-$hub2name -g $rg --location $location --vhub $hub2name --no-wait
 echo "vHub VPN Gateway Deployed"
 
 # vwan hub vpn gateway status
 echo "Validating vHubs VPN Gateways Provisioning"
-prState=$(az network vpn-gateway show -g $rg -n $hub1name-VPNGW --query provisioningState -o tsv)
+prState=$(az network vpn-gateway show -g $rg -n VPNGW-$hub1name --query provisioningState -o tsv)
 if [[ $prState == 'Failed' ]];
 then
     echo "VPN Gateway is in fail state. Deleting and rebuilding."
-    az network vpn-gateway delete -n $hub1name-VPNGW -g $rg
-    az network vpn-gateway create -n $hub1name-VPNGW -g $rg --location $location --vhub $hub1name --no-wait
+    az network vpn-gateway delete -n VPNGW-$hub1name -g $rg
+    az network vpn-gateway create -n VPNGW-$hub1name -g $rg --location $location --vhub $hub1name --no-wait
     sleep 5
 else
     prState=''
     while [[ $prState != 'Succeeded' ]];
     do
-        prState=$(az network vpn-gateway show -g $rg -n $hub1name-VPNGW --query provisioningState -o tsv)
-        echo $hub1name-VPNGW "provisioningState="$prState
+        prState=$(az network vpn-gateway show -g $rg -n VPNGW-$hub1name --query provisioningState -o tsv)
+        echo VPNGW-$hub1name "provisioningState="$prState
         sleep 5
     done
 fi
 
-prState=$(az network vpn-gateway show -g $rg -n $hub2name-VPNGW --query provisioningState -o tsv)
+prState=$(az network vpn-gateway show -g $rg -n VPNGW-$hub2name --query provisioningState -o tsv)
 if [[ $prState == 'Failed' ]];
 then
     echo "VPN Gateway is in fail state. Deleting and rebuilding."
-    az network vpn-gateway delete -n $hub2name-VPNGW -g $rg
-    az network vpn-gateway create -n $hub2name-VPNGW -g $rg --location $location --vhub $hub2name --no-wait
+    az network vpn-gateway delete -n VPNGW-$hub2name -g $rg
+    az network vpn-gateway create -n VPNGW-$hub2name -g $rg --location $location --vhub $hub2name --no-wait
     sleep 5
 else
     prState=''
     while [[ $prState != 'Succeeded' ]];
     do
-        prState=$(az network vpn-gateway show -g $rg -n $hub2name-VPNGW --query provisioningState -o tsv)
-        echo $hub2name-VPNGW "provisioningState="$prState
+        prState=$(az network vpn-gateway show -g $rg -n VPNGW-$hub2name --query provisioningState -o tsv)
+        echo VPNGW-$hub2name "provisioningState="$prState
         sleep 5
     done
 fi
@@ -227,8 +318,8 @@ done
 
 # create firewall policy and rules
 echo "Creating Azure Firewall Policy"
-fwpolicyname1=$hub1name-FwPolicy #firewall policy name for first Hub
-fwpolicyname2=$hub2name-FwPolicy #firewall policy name for second Hub
+fwpolicyname1="FwPolicy-$hub1name" # firewall policy name for first Hub
+fwpolicyname2="FwPolicy-$hub2name" # firewall policy name for second Hub
 az network firewall policy create --name $fwpolicyname1 --resource-group $rg --sku $firewallsku --enable-dns-proxy false --output none
 az network firewall policy create --name $fwpolicyname2 --resource-group $rg --sku $firewallsku --enable-dns-proxy false --output none
 az network firewall policy rule-collection-group create --name NetworkRuleCollectionGroup --priority 200 --policy-name $fwpolicyname1 --resource-group $rg --output none
@@ -245,7 +336,7 @@ az network firewall policy rule-collection-group collection add-filter-collectio
   --action Allow \
   --ip-protocols "ICMP" \
   --source-addresses "*" \
-  --destination-addresses  "*" \
+  --destination-addresses "*" \
   --destination-ports "*" \
   --collection-priority 100 \
   --output none
@@ -260,17 +351,17 @@ az network firewall policy rule-collection-group collection add-filter-collectio
   --action Allow \
   --ip-protocols "ICMP" \
   --source-addresses "*" \
-  --destination-addresses  "*" \
+  --destination-addresses "*" \
   --destination-ports "*" \
   --collection-priority 100 \
   --output none
 
 # creates and deploys azure firewalls inside vhubs
-echo "Deploying Azure Firewall inside vHub"
+echo "Configuring Azure Firewall inside vHub"
 fwpolicyid1=$(az network firewall policy show --resource-group $rg --name $fwpolicyname1 --query id --output tsv)
-az network firewall create -g $rg -n $hub1name-AzFw --sku AZFW_Hub --tier $firewallsku --virtual-hub $hub1name --public-ip-count 1 --firewall-policy $fwpolicyid1 --location $location --output none
+az network firewall create -g $rg -n AzFw-$hub1name --sku AZFW_Hub --tier $firewallsku --virtual-hub $hub1name --public-ip-count 1 --firewall-policy $fwpolicyid1 --location $location --output none
 fwpolicyid2=$(az network firewall policy show --resource-group $rg --name $fwpolicyname2 --query id --output tsv)
-az network firewall create -g $rg -n $hub2name-AzFw --sku AZFW_Hub --tier $firewallsku --virtual-hub $hub2name --public-ip-count 1 --firewall-policy $fwpolicyid2 --location $location --output none
+az network firewall create -g $rg -n AzFw-$hub2name --sku AZFW_Hub --tier $firewallsku --virtual-hub $hub2name --public-ip-count 1 --firewall-policy $fwpolicyid2 --location $location --output none
 
 msinsights=$(az provider show -n microsoft.insights --query registrationState -o tsv)
 if [ $msinsights == 'NotRegistered' ] || [ $msinsights == 'Unregistered' ]; then
@@ -283,11 +374,12 @@ az provider register -n microsoft.insights --accept-terms
     sleep 5
  done
 fi
+echo "Azure Firewall Deployed inside vHub"
 
 # log analytics workspace name
 echo "Enabling Azure Firewall Diagnostics"
-workspacename1=$hub1name-Sandbox-Log
-workspacename2=$hub2name-Sandbox-Log
+workspacename1="Log-Sandbox-$hub1name"
+workspacename2="Log-Sandbox-$hub2name"
 
 # creating log analytics workspaces
 az monitor log-analytics workspace create -g $rg --workspace-name $workspacename1 --location $location
@@ -295,17 +387,17 @@ az monitor log-analytics workspace create -g $rg --workspace-name $workspacename
 echo "Azure Firewall Diagnostics Log Deployed"
 
 # enabling azure firewall diagnostics
-# az monitor diagnostic-settings show -n toLogAnalytics -g $rg --resource $(az network firewall show --name $hub1name-AzFw --resource-group $rg --query id -o tsv)
+# az monitor diagnostic-settings show -n toLogAnalytics -g $rg --resource $(az network firewall show --name AzFw-$hub1name --resource-group $rg --query id -o tsv)
 az monitor diagnostic-settings create -n 'toLogAnalytics' \
---resource $(az network firewall show --name $hub1name-AzFw --resource-group $rg --query id -o tsv) \
+--resource $(az network firewall show --name AzFw-$hub1name --resource-group $rg --query id -o tsv) \
 --workspace $(az monitor log-analytics workspace show -g $rg --workspace-name $workspacename1 --query id -o tsv) \
 --logs '[{"category":"AzureFirewallApplicationRule","Enabled":true}, {"category":"AzureFirewallNetworkRule","Enabled":true}, {"category":"AzureFirewallDnsProxy","Enabled":true}]' \
 --metrics '[{"category": "AllMetrics","enabled": true}]' \
 --output none
 
-# az monitor diagnostic-settings show -n toLogAnalytics -g $rg --resource $(az network firewall show --name $hub2name-AzFw --resource-group $rg --query id -o tsv)
+# az monitor diagnostic-settings show -n toLogAnalytics -g $rg --resource $(az network firewall show --name AzFw-$hub2name --resource-group $rg --query id -o tsv)
 az monitor diagnostic-settings create -n 'toLogAnalytics' \
---resource $(az network firewall show --name $hub2name-AzFw --resource-group $rg --query id -o tsv) \
+--resource $(az network firewall show --name AzFw-$hub2name --resource-group $rg --query id -o tsv) \
 --workspace $(az monitor log-analytics workspace show -g $rg --workspace-name $workspacename2 --query id -o tsv) \
 --logs '[{"category":"AzureFirewallApplicationRule","Enabled":true}, {"category":"AzureFirewallNetworkRule","Enabled":true}, {"category":"AzureFirewallDnsProxy","Enabled":true}]' \
 --metrics '[{"category": "AllMetrics","enabled": true}]' \
