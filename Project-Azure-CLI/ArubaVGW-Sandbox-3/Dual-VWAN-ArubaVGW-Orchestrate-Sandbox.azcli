@@ -166,29 +166,23 @@ az vm create \
   --no-wait
 
 az vm create \
-  -n $vmname2 \
   -g $rg \
+  -n $vmname2 \
   --image Ubuntu2204 \
-  --public-ip-address PIP-$vmname2 \
   --size $vmsize \
   -l $location \
   --nics NIC-$vmname2 \
-  --subnet $subnetname2 \
-  --vnet-name $vnetspokename2 \
   --admin-username $username \
   --admin-password $password \
   --no-wait
 
 az vm create \
-  -n $vmname3 \
   -g $rg \
+  -n $vmname3 \
   --image Ubuntu2204 \
-  --public-ip-address PIP-$vmname3 \
   --size $vmsize \
   -l $location \
   --nics NIC-$vmname3 \
-  --subnet $subnetname3 \
-  --vnet-name $vnetspokename3 \
   --admin-username $username \
   --admin-password $password \
   --no-wait
