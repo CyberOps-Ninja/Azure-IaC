@@ -141,22 +141,63 @@ echo "NSG Rules Deployed"
 # associate nsg to subnet
 echo "Associating & Updating NSGs to VMs Subnet"
 az network vnet subnet update --resource-group $rg --vnet-name $vnetspokename1 --name $subnetname1 --network-security-group $nsgname1
-az network vnet subnet update --resource-group $rg --vnet-name $vnetspokename1 --name $subnetname1 --network-security-group $nsgname1
-az network vnet subnet update --resource-group $rg --vnet-name $vnetspokename1 --name $subnetname1 --network-security-group $nsgname1
+az network vnet subnet update --resource-group $rg --vnet-name $vnetspokename2 --name $subnetname2 --network-security-group $nsgname2
+az network vnet subnet update --resource-group $rg --vnet-name $vnetspokename3 --name $subnetname3 --network-security-group $nsgname3
 echo "NSG Updated & Associated to VM Subnet"
 
 # create nic for vm
 echo "Creating NICs for VMs"
 az network nic create --resource-group $rg --name NIC-$vmname1 --subnet $subnetname1 --network-security-group $nsgname1
-az network nic create --resource-group $rg --name NIC-$vmname1 --subnet $subnetname2 --network-security-group $nsgname1
-az network nic create --resource-group $rg --name NIC-$vmname1 --subnet $subnetname3 --network-security-group $nsgname1
+az network nic create --resource-group $rg --name NIC-$vmname2 --subnet $subnetname2 --network-security-group $nsgname2
+az network nic create --resource-group $rg --name NIC-$vmname3 --subnet $subnetname3 --network-security-group $nsgname3
 echo "VMs NICs Deployed"
 
 # create vm in spoke vnets
 echo "Creating VMs in Spoke VNets"
-az vm create -n $vmname1 -g $rg --image Ubuntu2204 --public-ip-address PIP-$vmname1 --size $vmsize -l $location --nics NIC-$vmname1 --subnet $subnetname1 --vnet-name $vnetspokename1 --admin-username $username --admin-password $password --nsg $nsgname1 --no-wait
-az vm create -n $vmname2 -g $rg --image Ubuntu2204 --public-ip-address PIP-$vmname2 --size $vmsize -l $location --nics NIC-$vmname1 --subnet $subnetname2 --vnet-name $vnetspokename2 --admin-username $username --admin-password $password --nsg $nsgname2 --no-wait
-az vm create -n $vmname3 -g $rg --image Ubuntu2204 --public-ip-address PIP-$vmname3 --size $vmsize -l $location --nics NIC-$vmname1 --subnet $subnetname3 --vnet-name $vnetspokename3 --admin-username $username --admin-password $password --nsg $nsgname3 --no-wait
+az vm create \
+  -n $vmname1 \
+  -g $rg \
+  --image Ubuntu2204 \
+  --public-ip-address PIP-$vmname1 \
+  --size $vmsize \
+  -l $location \
+  --nics NIC-$vmname1 \
+  --subnet $subnetname1 \
+  --vnet-name $vnetspokename1 \
+  --admin-username $username \
+  --admin-password $password \
+  --nsg $nsgname1 \
+  --no-wait
+
+az vm create \
+  -n $vmname2 \
+  -g $rg \
+  --image Ubuntu2204 \
+  --public-ip-address PIP-$vmname2 \
+  --size $vmsize \
+  -l $location \
+  --nics NIC-$vmname2 \
+  --subnet $subnetname2 \
+  --vnet-name $vnetspokename2 \
+  --admin-username $username \
+  --admin-password $password \
+  --nsg $nsgname2 \
+  --no-wait
+
+az vm create \
+  -n $vmname3 \
+  -g $rg \
+  --image Ubuntu2204 \
+  --public-ip-address PIP-$vmname3 \
+  --size $vmsize \
+  -l $location \
+  --nics NIC-$vmname3 \
+  --subnet $subnetname3 \
+  --vnet-name $vnetspokename3 \
+  --admin-username $username \
+  --admin-password $password \
+  --nsg $nsgname3 \
+  --no-wait
 echo "VMs Deployed in Spoke VNets"
 
 # create ArubaVGW VNet
