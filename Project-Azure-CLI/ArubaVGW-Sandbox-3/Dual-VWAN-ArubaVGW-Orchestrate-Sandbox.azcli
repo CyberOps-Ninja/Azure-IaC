@@ -166,7 +166,6 @@ az vm create \
   --vnet-name $vnetspokename1 \
   --admin-username $username \
   --admin-password $password \
-  --nsg $nsgname1 \
   --no-wait
 
 az vm create \
@@ -181,7 +180,6 @@ az vm create \
   --vnet-name $vnetspokename2 \
   --admin-username $username \
   --admin-password $password \
-  --nsg $nsgname2 \
   --no-wait
 
 az vm create \
@@ -196,7 +194,6 @@ az vm create \
   --vnet-name $vnetspokename3 \
   --admin-username $username \
   --admin-password $password \
-  --nsg $nsgname3 \
   --no-wait
 echo "VMs Deployed in Spoke VNets"
 
@@ -212,9 +209,9 @@ echo "ArubaVGW NSG Deployed"
 
 # create rules in ArubaVGW NSG
 echo "Creating ArubaVGW NSG Rules"
-az network nsg rule create --resource-group $rg --nsg-name $nsgnamevgw --name Allow-Port-4500 --protocol Tcp --priority 100 --destination-port-ranges 4500
-az network nsg rule create --resource-group $rg --nsg-name $nsgnamevgw --name Allow-Port-22 --protocol Tcp --priority 110 --destination-port-ranges 22
-az network nsg rule create --resource-group $rg --nsg-name $nsgnamevgw --name Allow-Port-443 --protocol Tcp --priority 120 --destination-port-ranges 443
+az network nsg rule create --resource-group $rg --nsg-name $nsgnamevgw --name Allow-Port-4500 --protocol Tcp --priority 100 --destination-port-ranges 4500 --access Allow --direction Inbound
+az network nsg rule create --resource-group $rg --nsg-name $nsgnamevgw --name Allow-Port-22 --protocol Tcp --priority 110 --destination-port-ranges 22 --access Allow --direction Inbound
+az network nsg rule create --resource-group $rg --nsg-name $nsgnamevgw --name Allow-Port-443 --protocol Tcp --priority 120 --destination-port-ranges 443 --access Allow --direction Inbound
 echo "ArubaVGW NSG Rules Deployed"
 
 # create ssh key for ArubaVGW
