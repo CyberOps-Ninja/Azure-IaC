@@ -406,4 +406,5 @@ az monitor diagnostic-settings create -n 'toLogAnalytics' \
 --metrics '[{"category": "AllMetrics","enabled": true}]' \
 --output none
 
-echo "Deployment Has Finished"
+echo "Deployment has Finished"
+echo "Check you.ssh Directory for Private/Public RSA Keys"

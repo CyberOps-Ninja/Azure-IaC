@@ -14,6 +14,15 @@ az resource list --resource-group "ResourceName"
 # colar json - jsonc
 # color yaml - yamlc
 az resource list --resource-group "ResourceName" --output table
+# shorthand for --resource-group
+-g
+# shorthand for --name
+-n
 
 # to delete resource group with options
-az group delete
+az group delete --name "ResourceGroup"
+# Do not wait for the long-running operation to finish. 
+--no-wait
+# Do not prompt for confirmation.
+--yes
+-y
