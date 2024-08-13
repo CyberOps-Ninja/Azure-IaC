@@ -210,7 +210,7 @@ echo "Creating ArubaVGW SSH Key Pair"
 az sshkey create --location $location --resource-group "$rg" --name $sshkeynamevgw
 echo "ArubaVGW SSH Key Pair Deployed, please download private key and store in a safe location"
 
-# Function to check the provisioning and routing state of a both vHub
+# define the function to check the provisioning and routing state of a both vHub
 check_vhub_state() {
     local vhub_name=$1
 
@@ -231,10 +231,10 @@ check_vhub_state() {
     done
 }
 
-# Check the state for vHub1
+# call function to check the state for vHub1
 check_vhub_state $hub1name
 
-# Check the state for vHub2
+# call function to check the state for vHub2
 check_vhub_state $hub2name
 
 # check hub vnet connections
@@ -244,30 +244,24 @@ az network vhub connection create -n Spoke-$vnetspokename2-Connection --remote-v
 az network vhub connection create -n Spoke-$vnetspokename3-Connection --remote-vnet $vnetspokename3 -g $rg --vhub-name $hub1name --no-wait
 echo "vHub1 vNet Connections Deployed"
 
-# validating provisioning state of each spoke vnet's connection
-prState=''
-while [[ $prState != 'Succeeded' ]];
-do
-    prState=$(az network vhub connection show -n Spoke-$vnetspokename1-Connection --vhub-name $hub1name -g $rg  --query 'provisioningState' -o tsv)
-    echo "vnet connection Spoke-$vnetspokename1-Connection provisioningState="$prState
-    sleep 5
-done
+# define the function for checking the provisioning state of a vnet connection
+check_provisioning_state() {
+    local connection_name=$1
+    local hub_name=$2
+    local resource_group=$3
 
-prState=''
-while [[ $prState != 'Succeeded' ]];
-do
-    prState=$(az network vhub connection show -n Spoke-$vnetspokename2-Connection --vhub-name $hub1name -g $rg  --query 'provisioningState' -o tsv)
-    echo "vnet connection Spoke-$vnetspokename2-Connection provisioningState="$prState
-    sleep 5
-done
+    local prState=''
+    while [[ $prState != 'Succeeded' ]]; do
+        prState=$(az network vhub connection show -n $connection_name --vhub-name $hub_name -g $resource_group --query 'provisioningState' -o tsv)
+        echo "vnet connection $connection_name provisioningState=$prState"
+        sleep 5
+    done
+}
 
-prState=''
-while [[ $prState != 'Succeeded' ]];
-do
-    prState=$(az network vhub connection show -n Spoke-$vnetspokename3-Connection --vhub-name $hub1name -g $rg  --query 'provisioningState' -o tsv)
-    echo "vnet connection Spoke-$vnetspokename3-Connection provisioningState="$prState
-    sleep 5
-done
+# call the function for each vnet spoke connection
+check_provisioning_state "Spoke-$vnetspokename1-Connection" $hub1name $rg
+check_provisioning_state "Spoke-$vnetspokename2-Connection" $hub1name $rg
+check_provisioning_state "Spoke-$vnetspokename3-Connection" $hub1name $rg
 
 # create vhub vpn gateway
 echo "Creating vHub VPN Gateway"
