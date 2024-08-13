@@ -14,3 +14,6 @@ az resource list --resource-group "ResourceName"
 # colar json - jsonc
 # color yaml - yamlc
 az resource list --resource-group "ResourceName" --output table
+
+# to delete resource group with options
+az group delete
