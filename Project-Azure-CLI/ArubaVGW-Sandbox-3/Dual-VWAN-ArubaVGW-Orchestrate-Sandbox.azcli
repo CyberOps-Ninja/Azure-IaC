@@ -10,11 +10,11 @@ az extension update --name azure-firewall
 # parameters/variables - resource group name and location
 rg="RG-VWAN-2-ArubaVGW-IaC"
 location="eastus"
-# parameters/variables for first vwan, hub, and firewall
+# parameters/variables for first vwan, vhub, and firewall
 vwan1name="VWAN-1-DataCenter"
 hub1name="Hub-1-DataCenter"
 address_prefix_hub1="10.175.0.0/24"
-# parameters/variables for secondary vwan, hub, and firewall
+# parameters/variables for secondary vwan, vhub, and firewall
 vwan2name="VWAN-2-Internet"
 hub2name="Hub-2-Internet"
 address_prefix_hub2="10.182.0.0/24"
@@ -210,55 +210,58 @@ echo "Creating ArubaVGW SSH Key Pair"
 az sshkey create --location $location --resource-group "$rg" --name $sshkeynamevgw
 echo "ArubaVGW SSH Key Pair Deployed, please download private key and store in a safe location"
 
-# check hub provisioning and routing state
-echo "Checking Hub1 provisioning status"
-prState=''
-rtState=''
-while [[ $prState != 'Succeeded' ]];
-do
-    prState=$(az network vhub show -g $rg -n $hub1name --query 'provisioningState' -o tsv)
-    echo "$hub1name provisioningState="$prState
-    sleep 5
-done
+# define the function to check the provisioning and routing state of a both vHub
+check_vhub_state() {
+    local vhub_name=$1
 
-while [[ $rtState != 'Provisioned' ]];
-do
-    rtState=$(az network vhub show -g $rg -n $hub1name --query 'routingState' -o tsv)
-    echo "$hub1name routingState="$rtState
-    sleep 5
-done
+    echo "Checking $vhub_name provisioning status"
+    prState=''
+    rtState=''
+
+    while [[ $prState != 'Succeeded' ]]; do
+        prState=$(az network vhub show -g $rg -n $vhub_name --query 'provisioningState' -o tsv)
+        echo "$vhub_name provisioningState=$prState"
+        sleep 5
+    done
+
+    while [[ $rtState != 'Provisioned' ]]; do
+        rtState=$(az network vhub show -g $rg -n $vhub_name --query 'routingState' -o tsv)
+        echo "$vhub_name routingState=$rtState"
+        sleep 5
+    done
+}
+
+# call function to check the state for vHub1
+check_vhub_state $hub1name
+
+# call function to check the state for vHub2
+check_vhub_state $hub2name
 
 # check hub vnet connections
-echo "Creating Hub1 vNet connections"
+echo "Creating vHub1 vNet connections"
 az network vhub connection create -n Spoke-$vnetspokename1-Connection --remote-vnet $vnetspokename1 -g $rg --vhub-name $hub1name --no-wait
 az network vhub connection create -n Spoke-$vnetspokename2-Connection --remote-vnet $vnetspokename2 -g $rg --vhub-name $hub1name --no-wait
 az network vhub connection create -n Spoke-$vnetspokename3-Connection --remote-vnet $vnetspokename3 -g $rg --vhub-name $hub1name --no-wait
-echo "Hub1 vNet Connections Deployed"
+echo "vHub1 vNet Connections Deployed"
 
-# validating provisioning state of each spoke vnet's connection
-prState=''
-while [[ $prState != 'Succeeded' ]];
-do
-    prState=$(az network vhub connection show -n Spoke-$vnetspokename1-Connection --vhub-name $hub1name -g $rg  --query 'provisioningState' -o tsv)
-    echo "vnet connection Spoke-$vnetspokename1-Connection provisioningState="$prState
-    sleep 5
-done
+# define the function for checking the provisioning state of a vnet connection
+check_provisioning_state() {
+    local connection_name=$1
+    local hub_name=$2
+    local resource_group=$3
 
-prState=''
-while [[ $prState != 'Succeeded' ]];
-do
-    prState=$(az network vhub connection show -n Spoke-$vnetspokename2-Connection --vhub-name $hub1name -g $rg  --query 'provisioningState' -o tsv)
-    echo "vnet connection Spoke-$vnetspokename2-Connection provisioningState="$prState
-    sleep 5
-done
+    local prState=''
+    while [[ $prState != 'Succeeded' ]]; do
+        prState=$(az network vhub connection show -n $connection_name --vhub-name $hub_name -g $resource_group --query 'provisioningState' -o tsv)
+        echo "vnet connection $connection_name provisioningState=$prState"
+        sleep 5
+    done
+}
 
-prState=''
-while [[ $prState != 'Succeeded' ]];
-do
-    prState=$(az network vhub connection show -n Spoke-$vnetspokename3-Connection --vhub-name $hub1name -g $rg  --query 'provisioningState' -o tsv)
-    echo "vnet connection Spoke-$vnetspokename3-Connection provisioningState="$prState
-    sleep 5
-done
+# call the function for each vnet spoke connection
+check_provisioning_state "Spoke-$vnetspokename1-Connection" $hub1name $rg
+check_provisioning_state "Spoke-$vnetspokename2-Connection" $hub1name $rg
+check_provisioning_state "Spoke-$vnetspokename3-Connection" $hub1name $rg
 
 # create vhub vpn gateway
 echo "Creating vHub VPN Gateway"
@@ -266,7 +269,7 @@ az network vpn-gateway create -n VPNGW-$hub1name -g $rg --location $location --v
 az network vpn-gateway create -n VPNGW-$hub2name -g $rg --location $location --vhub $hub2name --no-wait
 echo "vHub VPN Gateway Deployed"
 
-# vwan hub vpn gateway status
+# vwan vhub vpn gateway status
 echo "Validating vHubs VPN Gateways Provisioning"
 prState=$(az network vpn-gateway show -g $rg -n VPNGW-$hub1name --query provisioningState -o tsv)
 if [[ $prState == 'Failed' ]];
@@ -318,8 +321,8 @@ done
 
 # create firewall policy and rules
 echo "Creating Azure Firewall Policy"
-fwpolicyname1="FwPolicy-$hub1name" # firewall policy name for first Hub
-fwpolicyname2="FwPolicy-$hub2name" # firewall policy name for second Hub
+fwpolicyname1="FwPolicy-$hub1name" # firewall policy name for first vHub
+fwpolicyname2="FwPolicy-$hub2name" # firewall policy name for second vHub
 az network firewall policy create --name $fwpolicyname1 --resource-group $rg --sku $firewallsku --enable-dns-proxy false --output none
 az network firewall policy create --name $fwpolicyname2 --resource-group $rg --sku $firewallsku --enable-dns-proxy false --output none
 az network firewall policy rule-collection-group create --name NetworkRuleCollectionGroup --priority 200 --policy-name $fwpolicyname1 --resource-group $rg --output none
@@ -403,4 +406,5 @@ az monitor diagnostic-settings create -n 'toLogAnalytics' \
 --metrics '[{"category": "AllMetrics","enabled": true}]' \
 --output none
 
-echo "Deployment Has Finished"
+echo "Deployment has Finished"
+echo "Check you.ssh Directory for Private/Public RSA Keys"
