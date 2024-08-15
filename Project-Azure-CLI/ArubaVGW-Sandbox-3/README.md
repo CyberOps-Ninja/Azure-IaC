@@ -31,13 +31,14 @@ chmod +xr Dual-VWAN-ArubaVGW-Orchestrate-Sandbox.sh
 ```bash
 # Parameters (Can be changed and should be changed to prevent any overlay in your environment)
 # parameters/variables - resource group name and location
+# parameters/variables - resource group name and location
 rg="RG-VWAN-2-ArubaVGW-IaC"
 location="eastus"
-# parameters/variables for first vwan, hub, and firewall
+# parameters/variables for first vwan, vhub, and firewall
 vwan1name="VWAN-1-DataCenter"
 hub1name="Hub-1-DataCenter"
 address_prefix_hub1="10.175.0.0/24"
-# parameters/variables for secondary vwan, hub, and firewall
+# parameters/variables for secondary vwan, vhub, and firewall
 vwan2name="VWAN-2-Internet"
 hub2name="Hub-2-Internet"
 address_prefix_hub2="10.182.0.0/24"
