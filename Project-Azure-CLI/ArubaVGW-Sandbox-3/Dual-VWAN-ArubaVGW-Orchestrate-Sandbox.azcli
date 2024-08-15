@@ -1,6 +1,12 @@
 #!/bin/bash
+# set color variables
+error_color="\033[31m"
+success_color="\033[32m"
+info_color="\033[33m"
+reset_color="\033[0m"
+
 # pre-requisites
-echo validating pre-requisites
+echo -e "${info_color}Validating Pre-requisites${reset_color}"
 az extension add --name virtual-wan 
 az extension add --name azure-firewall
 # or updating vWAN and AzFirewall CLI extensions
@@ -57,41 +63,41 @@ nsgname3="NSG-Sandbox-InfraMgmt"
 myazpip=$(curl -4 ifconfig.io -s)
 
 # create resource group in EastUS region
-echo "Creating Resource Group"
+echo -e "${info_color}Creating Resource Group${reset_color}"
 az group create --name $rg --location $location
-echo "Resource Group Deployed"
+echo -e "${success_color}Resource Group Deployed${reset_color}"
 
 # create vitual wan
-echo "Creating VWAN Hubs"
+echo -e "${info_color}Creating VWAN Hubs${reset_color}"
 az network vwan create -g $rg --name $vwan1name --branch-to-branch-traffic true --location $location --type Standard --output none
 az network vhub create -g $rg --name $hub1name --address-prefix $address_prefix_hub1 --vwan $vwan1name --location $location --sku Standard --no-wait
 az network vwan create -g $rg --name $vwan2name --branch-to-branch-traffic true --location $location --type Standard --output none
 az network vhub create -g $rg --name $hub2name --address-prefix $address_prefix_hub2 --vwan $vwan2name --location $location --sku Standard --no-wait
-echo "VWAN & Hub Deployed"
+echo -e "${success_color}VWAN & Hub Deployed${reset_color}"
 
 # create spoke virtual networks
-echo "Creating Spoke VNETs and Subnets"
+echo -e "${info_color}Creating Spoke VNETs and Subnets${reset_color}"
 az network vnet create --address-prefixes $address_prefix_sp_vnet1 -n $vnetspokename1 -g $rg -l $location --subnet-name $subnetname1 --subnet-prefixes $address_prefix_sp_vnet1 --output none
 az network vnet create --address-prefixes $address_prefix_sp_vnet2 -n $vnetspokename2 -g $rg -l $location --subnet-name $subnetname2 --subnet-prefixes $address_prefix_sp_vnet2 --output none
 az network vnet create --address-prefixes $address_prefix_sp_vnet3 -n $vnetspokename3 -g $rg -l $location --subnet-name $subnetname3 --subnet-prefixes $address_prefix_sp_vnet3 --output none
-echo "Spoke VNets and Subnets Deployed"
+echo -e "${success_color}Spoke VNets and Subnets Deployed${reset_color}"
 
 # crate public ip for vms
-echo "Creating PIP for VMs"
+echo -e "${info_color}Creating PIP for VMs${reset_color}"
 az network public-ip create --resource-group $rg --name PIP-$vmname1 --version IPv4 --allocation-method static --sku Standard --zone 1 2 3
 az network public-ip create --resource-group $rg --name PIP-$vmname2 --version IPv4 --allocation-method static --sku Standard --zone 1 2 3
 az network public-ip create --resource-group $rg --name PIP-$vmname3 --version IPv4 --allocation-method static --sku Standard --zone 1 2 3
-echo "PIPs Deployed"
+echo -e "${success_color}PIPs Deployed${reset_color}"
 
 # create nsg
-echo "Creating NSGs"
+echo -e "${info_color}Creating NSGs"
 az network nsg create --resource-group $rg --name $nsgname1
 az network nsg create --resource-group $rg --name $nsgname2
 az network nsg create --resource-group $rg --name $nsgname3
-echo "NSGs Deployed"
+echo -e "${success_color}NSGs Deployed${reset_color}"
 
 # update nsg rules
-echo "Creating NSG Rules"
+echo -e "${info_color}Creating NSG Rules${reset_color}"
 az network nsg rule create \
   --resource-group $rg \
   --nsg-name $nsgname1 \
@@ -136,24 +142,24 @@ az network nsg rule create \
   --protocol Tcp \
   --description "Allow inbound SSH" \
   --output none
-echo "NSG Rules Deployed"
+echo -e "${success_color}NSG Rules Deployed${reset_color}"
 
 # associate nsg to subnet
-echo "Associating & Updating NSGs to VMs Subnet"
+echo -e "${info_color}Associating & Updating NSGs to VMs Subnet${reset_color}"
 az network vnet subnet update --resource-group $rg --vnet-name $vnetspokename1 --name $subnetname1 --network-security-group $nsgname1
 az network vnet subnet update --resource-group $rg --vnet-name $vnetspokename2 --name $subnetname2 --network-security-group $nsgname2
 az network vnet subnet update --resource-group $rg --vnet-name $vnetspokename3 --name $subnetname3 --network-security-group $nsgname3
-echo "NSG Updated & Associated to VM Subnet"
+echo -e "${success_color}NSG Updated & Associated to VM Subnet${reset_color}"
 
 # create nic for vm
-echo "Creating NICs for VMs"
+echo -e "${info_color}Creating NICs for VMs${reset_color}"
 az network nic create --resource-group $rg --name NIC-$vmname1 --vnet-name $vnetspokename1 --subnet $subnetname1 --network-security-group $nsgname1 --public-ip-address PIP-$vmname1
 az network nic create --resource-group $rg --name NIC-$vmname2 --vnet-name $vnetspokename2 --subnet $subnetname2 --network-security-group $nsgname2 --public-ip-address PIP-$vmname2
 az network nic create --resource-group $rg --name NIC-$vmname3 --vnet-name $vnetspokename3 --subnet $subnetname3 --network-security-group $nsgname3 --public-ip-address PIP-$vmname3
-echo "VMs NICs Deployed"
+echo -e "${success_color}VMs NICs Deployed${reset_color}"
 
 # create vm in spoke vnets
-echo "Creating VMs in Spoke VNets"
+echo -e "${info_color}Creating VMs in Spoke VNets${reset_color}"
 az vm create \
   -g $rg \
   -n $vmname1 \
@@ -186,47 +192,47 @@ az vm create \
   --admin-username $username \
   --admin-password $password \
   --no-wait
-echo "VMs Deployed in Spoke VNets"
+echo -e "${success_color}VMs Deployed in Spoke VNets${reset_color}"
 
 # create ArubaVGW VNet
-echo "Creating ArubaVGW VNet"
+echo -e "${info_color}Creating ArubaVGW VNet${reset_color}"
 az network vnet create --resource-group $rg --name $vnetnamevgw --address-prefix $address_prefix_vgw --subnet-name $subnetnamevgw --subnet-prefix $subnet_prefix_vgw
-echo "ArubaVGW VNet Deployed"
+echo -e "${success_color}ArubaVGW VNet Deployed${reset_color}"
 
 # create ArubaVGW NSG
-echo "Creating ArubaVGW NSG"
+echo -e "${info_color}Creating ArubaVGW NSG${reset_color}"
 az network nsg create --resource-group $rg --name $nsgnamevgw
-echo "ArubaVGW NSG Deployed"
+echo -e "${success_color}ArubaVGW NSG Deployed${reset_color}"
 
 # create rules in ArubaVGW NSG
-echo "Creating ArubaVGW NSG Rules"
+echo -e "${info_color}Creating ArubaVGW NSG Rules${reset_color}"
 az network nsg rule create --resource-group $rg --nsg-name $nsgnamevgw --name Allow-Port-4500 --protocol Tcp --priority 100 --destination-port-ranges 4500 --access Allow --direction Inbound
 az network nsg rule create --resource-group $rg --nsg-name $nsgnamevgw --name Allow-Port-22 --protocol Tcp --priority 110 --destination-port-ranges 22 --access Allow --direction Inbound
 az network nsg rule create --resource-group $rg --nsg-name $nsgnamevgw --name Allow-Port-443 --protocol Tcp --priority 120 --destination-port-ranges 443 --access Allow --direction Inbound
-echo "ArubaVGW NSG Rules Deployed"
+echo -e "${success_color}ArubaVGW NSG Rules Deployed${reset_color}"
 
 # create ssh key for ArubaVGW
-echo "Creating ArubaVGW SSH Key Pair"
+echo -e "${info_color}Creating ArubaVGW SSH Key Pair${reset_color}"
 az sshkey create --location $location --resource-group "$rg" --name $sshkeynamevgw
-echo "ArubaVGW SSH Key Pair Deployed, please download private key and store in a safe location"
+echo -e "${success_color}ArubaVGW SSH Key Pair Deployed, please download private key and store in a safe location${reset_color}"
 
 # define the function to check the provisioning and routing state of a both vHub
 check_vhub_state() {
     local vhub_name=$1
 
-    echo "Checking $vhub_name provisioning status"
+    echo -e "${info_color}Checking $vhub_name Provisioning Status${reset_color}"
     prState=''
     rtState=''
 
     while [[ $prState != 'Succeeded' ]]; do
         prState=$(az network vhub show -g $rg -n $vhub_name --query 'provisioningState' -o tsv)
-        echo "$vhub_name provisioningState=$prState"
+        echo -e "${info_color}$vhub_name provisioningState=$prState${reset_color}"
         sleep 5
     done
 
     while [[ $rtState != 'Provisioned' ]]; do
         rtState=$(az network vhub show -g $rg -n $vhub_name --query 'routingState' -o tsv)
-        echo "$vhub_name routingState=$rtState"
+        echo -e "${info_color}$vhub_name routingState=$rtState${reset_color}"
         sleep 5
     done
 }
@@ -238,11 +244,11 @@ check_vhub_state $hub1name
 check_vhub_state $hub2name
 
 # check hub vnet connections
-echo "Creating vHub1 vNet connections"
+echo -e "${info_color}Creating vHub1 vNet connections${reset_color}"
 az network vhub connection create -n Spoke-$vnetspokename1-Connection --remote-vnet $vnetspokename1 -g $rg --vhub-name $hub1name --no-wait
 az network vhub connection create -n Spoke-$vnetspokename2-Connection --remote-vnet $vnetspokename2 -g $rg --vhub-name $hub1name --no-wait
 az network vhub connection create -n Spoke-$vnetspokename3-Connection --remote-vnet $vnetspokename3 -g $rg --vhub-name $hub1name --no-wait
-echo "vHub1 vNet Connections Deployed"
+echo -e "${success_color}vHub1 vNet Connections Deployed${reset_color}"
 
 # define the function for checking the provisioning state of a vnet connection
 check_provisioning_state() {
@@ -253,7 +259,7 @@ check_provisioning_state() {
     local prState=''
     while [[ $prState != 'Succeeded' ]]; do
         prState=$(az network vhub connection show -n $connection_name --vhub-name $hub_name -g $resource_group --query 'provisioningState' -o tsv)
-        echo "vnet connection $connection_name provisioningState=$prState"
+        echo -e "${info_color}vnet connection $connection_name provisioningState=$prState${reset_color}"
         sleep 5
     done
 }
@@ -264,17 +270,17 @@ check_provisioning_state "Spoke-$vnetspokename2-Connection" $hub1name $rg
 check_provisioning_state "Spoke-$vnetspokename3-Connection" $hub1name $rg
 
 # create vhub vpn gateway
-echo "Creating vHub VPN Gateway"
+echo -e "${info_color}Creating vHub VPN Gateway${reset_color}"
 az network vpn-gateway create -n VPNGW-$hub1name -g $rg --location $location --vhub $hub1name --no-wait
 az network vpn-gateway create -n VPNGW-$hub2name -g $rg --location $location --vhub $hub2name --no-wait
-echo "vHub VPN Gateway Deployed"
+echo -e "${success_color}vHub VPN Gateway Deployed${reset_color}"
 
 # vwan vhub vpn gateway status
-echo "Validating vHubs VPN Gateways Provisioning"
+echo -e "${info_color}Validating vHubs VPN Gateways Provisioning${reset_color}"
 prState=$(az network vpn-gateway show -g $rg -n VPNGW-$hub1name --query provisioningState -o tsv)
 if [[ $prState == 'Failed' ]];
 then
-    echo "VPN Gateway is in fail state. Deleting and rebuilding."
+    echo -e "${error_color}VPN Gateway is in fail state. Deleting and rebuilding.${reset_color}"
     az network vpn-gateway delete -n VPNGW-$hub1name -g $rg
     az network vpn-gateway create -n VPNGW-$hub1name -g $rg --location $location --vhub $hub1name --no-wait
     sleep 5
@@ -283,7 +289,7 @@ else
     while [[ $prState != 'Succeeded' ]];
     do
         prState=$(az network vpn-gateway show -g $rg -n VPNGW-$hub1name --query provisioningState -o tsv)
-        echo VPNGW-$hub1name "provisioningState="$prState
+        echo -e ${info_color}VPNGW-$hub1name "provisioningState="$prState${reset_color}
         sleep 5
     done
 fi
@@ -291,7 +297,7 @@ fi
 prState=$(az network vpn-gateway show -g $rg -n VPNGW-$hub2name --query provisioningState -o tsv)
 if [[ $prState == 'Failed' ]];
 then
-    echo "VPN Gateway is in fail state. Deleting and rebuilding."
+    echo -e "${error_color}VPN Gateway is in fail state. Deleting and rebuilding.${reset_color}"
     az network vpn-gateway delete -n VPNGW-$hub2name -g $rg
     az network vpn-gateway create -n VPNGW-$hub2name -g $rg --location $location --vhub $hub2name --no-wait
     sleep 5
@@ -300,12 +306,13 @@ else
     while [[ $prState != 'Succeeded' ]];
     do
         prState=$(az network vpn-gateway show -g $rg -n VPNGW-$hub2name --query provisioningState -o tsv)
-        echo VPNGW-$hub2name "provisioningState="$prState
+        echo -e ${info_color}VPNGW-$hub2name "provisioningState="$prState${reset_color}
         sleep 5
     done
 fi
 
 ## install tools for networking connectivity validation such as traceroute, tcptraceroute, iperf and others
+echo -e "${info_color}Installing Linux Tools for Network Connectivity${reset_color}"
 nettoolsuri="https://raw.githubusercontent.com/CyberOps-Ninja/Azure-IaC/main/Project-Azure-CLI/Azure-Net-Tools/vm-net-tools.sh"
 for vm in `az vm list -g $rg --query "[?contains(storageProfile.imageReference.publisher,'Canonical')].name" -o tsv`
 do
@@ -318,9 +325,10 @@ do
  --force-update \
  --no-wait
 done
+echo -e "${success_color}Deployed Linux Tools for Network Connectivity${reset_color}"
 
 # create firewall policy and rules
-echo "Creating Azure Firewall Policy"
+echo -e "${info_color}Creating Azure Firewall Policy${reset_color}"
 fwpolicyname1="FwPolicy-$hub1name" # firewall policy name for first vHub
 fwpolicyname2="FwPolicy-$hub2name" # firewall policy name for second vHub
 az network firewall policy create --name $fwpolicyname1 --resource-group $rg --sku $firewallsku --enable-dns-proxy false --output none
@@ -360,7 +368,7 @@ az network firewall policy rule-collection-group collection add-filter-collectio
   --output none
 
 # creates and deploys azure firewalls inside vhubs
-echo "Configuring Azure Firewall inside vHub"
+echo -e "${info_color}Configuring Azure Firewall inside vHub${reset_color}"
 fwpolicyid1=$(az network firewall policy show --resource-group $rg --name $fwpolicyname1 --query id --output tsv)
 az network firewall create -g $rg -n AzFw-$hub1name --sku AZFW_Hub --tier $firewallsku --virtual-hub $hub1name --public-ip-count 1 --firewall-policy $fwpolicyid1 --location $location --output none
 fwpolicyid2=$(az network firewall policy show --resource-group $rg --name $fwpolicyname2 --query id --output tsv)
@@ -373,24 +381,25 @@ az provider register -n microsoft.insights --accept-terms
  while [[ $prState != 'Registered' ]];
  do
     prState=$(az provider show -n microsoft.insights --query registrationState -o tsv)
-    echo "MS Insights State="$prState
+    echo -e "${info_color}MS Insights State="$prState${reset_color}
     sleep 5
  done
 fi
-echo "Azure Firewall Deployed inside vHub"
+echo -e "${success_color}Azure Firewall Deployed inside vHub${reset_color}"
 
 # log analytics workspace name
-echo "Enabling Azure Firewall Diagnostics"
+echo -e "${info_color}Enabling Azure Firewall Diagnostics${reset_color}"
 workspacename1="Log-Sandbox-$hub1name"
 workspacename2="Log-Sandbox-$hub2name"
 
 # creating log analytics workspaces
 az monitor log-analytics workspace create -g $rg --workspace-name $workspacename1 --location $location
 az monitor log-analytics workspace create -g $rg --workspace-name $workspacename2 --location $location
-echo "Azure Firewall Diagnostics Log Deployed"
+echo -e "${success_color}Azure Firewall Diagnostics Log Deployed${reset_color}"
 
 # enabling azure firewall diagnostics
 # az monitor diagnostic-settings show -n toLogAnalytics -g $rg --resource $(az network firewall show --name AzFw-$hub1name --resource-group $rg --query id -o tsv)
+echo -e "${info_color}Enabling Monitor Diagnostic for Azure Firewall${reset_color}"
 az monitor diagnostic-settings create -n 'toLogAnalytics' \
 --resource $(az network firewall show --name AzFw-$hub1name --resource-group $rg --query id -o tsv) \
 --workspace $(az monitor log-analytics workspace show -g $rg --workspace-name $workspacename1 --query id -o tsv) \
@@ -405,6 +414,7 @@ az monitor diagnostic-settings create -n 'toLogAnalytics' \
 --logs '[{"category":"AzureFirewallApplicationRule","Enabled":true}, {"category":"AzureFirewallNetworkRule","Enabled":true}, {"category":"AzureFirewallDnsProxy","Enabled":true}]' \
 --metrics '[{"category": "AllMetrics","enabled": true}]' \
 --output none
+echo -e "${success_color}Deployed Monitor Diagnostic for Azure Firewall${reset_color}"
 
-echo "Deployment has Finished"
-echo "Check you.ssh Directory for Private/Public RSA Keys"
+echo -e "${success_color}Deployment has Finished${reset_color}"
+echo -e "${success_color}Check your .ssh Directory for Private/Public RSA Keys${reset_color}"
