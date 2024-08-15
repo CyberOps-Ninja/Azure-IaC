@@ -325,7 +325,7 @@ do
  --force-update \
  --no-wait
 done
-echo -e "${success_color}Deployment has Finished"Deployed Linux Tools for Network Connectivity${reset_color}"
+echo -e "${success_color}Deployed Linux Tools for Network Connectivity${reset_color}"
 
 # create firewall policy and rules
 echo -e "${info_color}Creating Azure Firewall Policy${reset_color}"
@@ -395,7 +395,7 @@ workspacename2="Log-Sandbox-$hub2name"
 # creating log analytics workspaces
 az monitor log-analytics workspace create -g $rg --workspace-name $workspacename1 --location $location
 az monitor log-analytics workspace create -g $rg --workspace-name $workspacename2 --location $location
-echo -e "${success_color}Deployment has Finished"Azure Firewall Diagnostics Log Deployed${reset_color}"
+echo -e "${success_color}Azure Firewall Diagnostics Log Deployed${reset_color}"
 
 # enabling azure firewall diagnostics
 # az monitor diagnostic-settings show -n toLogAnalytics -g $rg --resource $(az network firewall show --name AzFw-$hub1name --resource-group $rg --query id -o tsv)
