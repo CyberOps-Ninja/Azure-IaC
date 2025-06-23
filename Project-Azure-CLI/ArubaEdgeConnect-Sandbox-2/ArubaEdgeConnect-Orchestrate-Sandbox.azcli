@@ -1,0 +1,75 @@
+#!/bin/bash
+# set color variables
+error_color="\033[31m"
+success_color="\033[32m"
+info_color="\033[33m"
+reset_color="\033[0m"
+
+# pre-requisites
+echo -e "${info_color}Validating Pre-requisites${reset_color}"
+az extension add --name virtual-wan 
+# or updating vWAN CLI extensions
+az extension update --name virtual-wan
+# parameters/variables for Aruba EdgeConnect - resource group name and location
+rg_ecv="RG-ArubaEdgeConnect-IaC"
+location="eastus"
+
+# parameters/variables for vWAN - resource group name and location
+rg_vwan="RG-ArubaEdgeConnect-VWAN-IaC"
+hub1name="Hub1-ArubaEdgeConnect-VWAN"
+location_vwan="eastus"
+
+
+
+sshkeyname="ssh-key-arubaedgeconnect-iac"
+
+
+
+# parameters/variables for spoke vnet 1
+vnetspokename1="VNet-Sandbox-E1"
+address_prefix_sp_vnet1="10.175.1.0/24"
+subnetname1="Subnet-Sandbox-E1-Main"
+subnet_prefix_1="10.175.1.0/25"
+# parameters/variables for spoke vnet 2
+vnetspokename2="VNet-Sandbox-P6"
+address_prefix_sp_vnet2="10.175.2.0/24"
+subnetname2="Subnet-Sandbox-P6-Main"
+subnet_prefix_2="10.175.2.0/25"
+# parameters/variables for spoke vnet 3
+vnetspokename3="VNet-Sandbox-InfraMgmt"
+address_prefix_sp_vnet3="10.175.3.0/24"
+subnetname3="Subnet-Sandbox-InfraMgmt-Main"
+subnet_prefix_3="10.175.3.0/25"
+
+# parameters/variables for linux machines
+username="azurelinuxadmin"
+password="Az-Linux@R00t"
+vmsize=Standard_DS1_v2
+vmname1="VM-Sandbox-E1"
+vmname2="VM-Sandbox-P6"
+vmname3="VM-Sandbox-InfraMgmt"
+nsgname1="NSG-Sandbox-E1"
+nsgname2="NSG-Sandbox-P6"
+nsgname3="NSG-Sandbox-InfraMgmt"
+
+# parameters/varialbes for my public IP
+myazpip=$(curl -4 ifconfig.io -s)
+
+
+# create resource group
+echo "Creating Resource Group"
+az group create --name $rg --location $location
+echo "Resource Group Deployed"
+
+
+
+
+
+
+
+# create ssh key
+echo "Creating SSH Key Pair"
+az sshkey create --location $location --resource-group "$rg" --name $sshkeyname
+echo "Deployed SSH Key Pair, please download private key and store in a safe location"
+
+echo "Deployment has finished"

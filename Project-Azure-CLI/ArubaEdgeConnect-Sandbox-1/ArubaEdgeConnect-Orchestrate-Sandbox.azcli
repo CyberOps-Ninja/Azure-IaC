@@ -1,39 +1,40 @@
 #!/bin/bash
-# parameters and variables - can be changed
-rg="RG-ArubaVGW-IaC"
+# set color variables
+error_color="\033[31m"
+success_color="\033[32m"
+info_color="\033[33m"
+reset_color="\033[0m"
+
+# pre-requisites
+echo -e "${info_color}Validating Pre-requisites${reset_color}"
+
+# parameters/variables for Aruba EdgeConnect - resource group name and location
+rg_ecv="RG-ArubaEdgeConnect-IaC" # This variable is for EdgeConnect, but you use 'rg' later
 location="eastus"
-vnetname="VNet-ArubaVGW-IaC"
-address_prefix="10.181.0.0/16"
-subnetname="Azure-Services-Subnet"
-subnet_prefix="10.181.1.0/24"
-nsgname="NSG-ArubaVGW-IaC"
-sshkeyname="ssh-key-arubavgw-iac"
 
-# create resource group
-echo "Creating Resource Group"
-az group create --name $rg --location $location
-echo "Resource Group Deployed"
+# parameters/variables for Aruba EdgeConnect
+sshkeyname="ssh-key-arubaedgeconnect-iac"
 
-# create VNet
-echo "Creating VNet"
-az network vnet create --resource-group $rg --name $vnetname --address-prefix $address_prefix --subnet-name $subnetname --subnet-prefix $subnet_prefix
-echo "VNet Deployed"
-
-# create NSG
-echo "Creating NSG"
-az network nsg create --resource-group $rg --name $nsgname
-echo "Deployed NSG"
-
-# create rules in NSG
-echo "Creating NSG Rules"
-az network nsg rule create --resource-group $rg --nsg-name $nsgname --name Allow-Port-4500 --protocol Tcp --priority 100 --destination-port-ranges 4500
-az network nsg rule create --resource-group $rg --nsg-name $nsgname --name Allow-Port-22 --protocol Tcp --priority 110 --destination-port-ranges 22
-az network nsg rule create --resource-group $rg --nsg-name $nsgname --name Allow-Port-443 --protocol Tcp --priority 120 --destination-port-ranges 443
-echo "Deployed NSG Rules"
+# create resource group if it doesn't exist
+echo -e "${info_color}Creating Resource Group if it doesn't exist...${reset_color}"
+az group create --name "$rg_ecv" --location "$location" --output none # Added --output none to reduce clutter
+if [ $? -eq 0 ]; then
+    echo -e "${success_color}Resource Group '$rg_ecv' created or already exists.${reset_color}"
+else
+    echo -e "${error_color}Error creating or validating Resource Group '$rg_ecv'. Exiting.${reset_color}"
+    exit 1
+fi
 
 # create ssh key
-echo "Creating SSH Key Pair"
-az sshkey create --location $location --resource-group "$rg" --name $sshkeyname
-echo "Deployed SSH Key Pair, please download private key and store in a safe location"
+echo -e "${info_color}Creating SSH Key Pair '$sshkeyname' in '$rg_ecv' at '$location'${reset_color}"
+az sshkey create --location "$location" --resource-group "$rg_ecv" --name "$sshkeyname"
+if [ $? -eq 0 ]; then
+    echo -e "${success_color}Deployed SSH Key Pair '$sshkeyname'.${reset_color}"
+    echo -e "${info_color}Please download the private key and store it in a safe location.${reset_color}"
+    echo -e "${info_color}The private key is typically saved to ~/.ssh/${sshkeyname}${reset_color}"
+else
+    echo -e "${error_color}Error deploying SSH Key Pair '$sshkeyname'. Exiting.${reset_color}"
+    exit 1
+fi
 
-echo "Deployment has finished"
+echo -e "${success_color}Deployment has finished.${reset_color}"
