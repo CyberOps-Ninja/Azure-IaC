@@ -26,3 +26,15 @@ az group delete --name "ResourceGroup"
 # Do not prompt for confirmation.
 --yes
 -y
+
+# to run script in Azure Cloud Shell
+# change the permission of the script to be executed to "Run in Cloud Shell" in the Azure Portal
+chmod +x script.sh
+or
+chmod +x script.azcli
+
+# to run script in Azure Cloud Shell you may need to convert the script from Windows (CRLF) to Unix (LF) format
+# using dos2unix command
+dos2unix script.sh
+or
+dos2unix script.azcli
