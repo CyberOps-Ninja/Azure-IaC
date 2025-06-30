@@ -11,7 +11,7 @@ az account set --subscription "SubscriptionName"
 az resource list --resource-group "ResourceName"
 
 # add output & with the following cmds: table, json, yaml, or none
-# colar json - jsonc
+# color json - jsonc
 # color yaml - yamlc
 az resource list --resource-group "ResourceName" --output table
 # shorthand for --resource-group
