@@ -59,7 +59,7 @@ nsgname1="NSG-Sandbox-E1"
 nsgname2="NSG-Sandbox-P6"
 nsgname3="NSG-Sandbox-InfraMgmt"
 
-# parameters/varialbes for my public IP
+# parameters/variables for my public IP
 myazpip=$(curl -4 ifconfig.io -s)
 
 # create resource group in EastUS region
@@ -67,7 +67,7 @@ echo -e "${info_color}Creating Resource Group${reset_color}"
 az group create --name $rg --location $location
 echo -e "${success_color}Resource Group Deployed${reset_color}"
 
-# create vitual wan
+# create virtual wan
 echo -e "${info_color}Creating VWAN Hubs${reset_color}"
 az network vwan create -g $rg --name $vwan1name --branch-to-branch-traffic true --location $location --type Standard --output none
 az network vhub create -g $rg --name $hub1name --address-prefix $address_prefix_hub1 --vwan $vwan1name --location $location --sku Standard --no-wait

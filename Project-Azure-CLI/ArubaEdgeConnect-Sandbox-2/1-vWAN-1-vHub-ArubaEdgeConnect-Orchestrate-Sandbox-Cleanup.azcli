@@ -1,0 +1,5 @@
+# Parameters 
+rg_ecv=RG-ArubaEdgeConnect-IaC
+
+# Clean up
+az group delete -g $rg_ecv --no-wait
