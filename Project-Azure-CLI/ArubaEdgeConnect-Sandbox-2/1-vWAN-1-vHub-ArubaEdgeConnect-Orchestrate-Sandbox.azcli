@@ -1,50 +1,49 @@
 #!/bin/bash
+set -e # Exit immediately if a command exits with a non-zero status
+
 # set color variables
 error_color="\033[31m"
 success_color="\033[32m"
 info_color="\033[33m"
 reset_color="\033[0m"
 
+# Function to display error messages and exit
+handle_error() {
+    echo -e "${error_color}Error: $1. Exiting.${reset_color}" >&2
+    exit 1
+}
+
+echo -e "${info_color}--- Starting Azure Virtual WAN and Spoke VNET Deployment ---${reset_color}"
+
 # pre-requisites
-echo -e "${info_color}Validating Pre-requisites${reset_color}"
-az extension add --name virtual-wan 
-# or updating vWAN CLI extensions
-az extension update --name virtual-wan
-# parameters/variables for Aruba EdgeConnect - resource group name and location
-rg_ecv="RG-ArubaEdgeConnect-IaC"
+echo -e "${info_color}Validating Pre-requisites - Checking/Adding Azure Virtual WAN extension...${reset_color}"
+az extension add --name virtual-wan || az extension update --name virtual-wan || handle_error "Failed to install or update Azure 'virtual-wan' extension."
+echo -e "${success_color}Azure Virtual WAN extension checked/updated successfully.${reset_color}"
+
+# parameters/variables for Aruba EdgeConnect and vWAN/vHub
+rg="RG-ArubaEdgeConnect-VWAN-IaC"
 location="eastus"
-
-# parameters/variables for vWAN - resource group name and location
-rg_vwan="RG-ArubaEdgeConnect-VWAN-IaC"
+vwan1name="VWAN-ArubaEdgeConnect"
 hub1name="Hub1-ArubaEdgeConnect-VWAN"
-location_vwan="eastus"
+address_prefix_hub1="10.0.0.0/23"
+sshkeyname="ssh-key-arubaedgeconnect-iac" # SSH key name for VM authentication
 
-
-
-sshkeyname="ssh-key-arubaedgeconnect-iac"
-
-
-
-# parameters/variables for spoke vnet 1
+# parameters/variables for spoke vnets
 vnetspokename1="VNet-Sandbox-E1"
 address_prefix_sp_vnet1="10.175.1.0/24"
-subnetname1="Subnet-Sandbox-E1-Main"
-subnet_prefix_1="10.175.1.0/25"
-# parameters/variables for spoke vnet 2
+subnetname1="Subnet-Sandbox-E1-Main" # Used in subnet update, not just for vnet create
 vnetspokename2="VNet-Sandbox-P6"
 address_prefix_sp_vnet2="10.175.2.0/24"
-subnetname2="Subnet-Sandbox-P6-Main"
-subnet_prefix_2="10.175.2.0/25"
-# parameters/variables for spoke vnet 3
+subnetname2="Subnet-Sandbox-P6-Main" # Used in subnet update, not just for vnet create
 vnetspokename3="VNet-Sandbox-InfraMgmt"
 address_prefix_sp_vnet3="10.175.3.0/24"
-subnetname3="Subnet-Sandbox-InfraMgmt-Main"
-subnet_prefix_3="10.175.3.0/25"
+subnetname3="Subnet-Sandbox-InfraMgmt-Main" # Used in subnet update, not just for vnet create
 
-# parameters/variables for linux machines
+# parameters for VMs
 username="azurelinuxadmin"
-password="Az-Linux@R00t"
-vmsize=Standard_DS1_v2
+# Password for VMs will NOT be used directly. We will use SSH keys.
+# password="Az-Linux@R00t" # Removed for security.
+vmsize="Standard_DS1_v2" # Quoting for consistency
 vmname1="VM-Sandbox-E1"
 vmname2="VM-Sandbox-P6"
 vmname3="VM-Sandbox-InfraMgmt"
@@ -52,24 +51,159 @@ nsgname1="NSG-Sandbox-E1"
 nsgname2="NSG-Sandbox-P6"
 nsgname3="NSG-Sandbox-InfraMgmt"
 
-# parameters/varialbes for my public IP
-myazpip=$(curl -4 ifconfig.io -s)
+# Arrays for looping VM-related resources
+vm_names=("$vmname1" "$vmname2" "$vmname3")
+vnet_spoke_names=("$vnetspokename1" "$vnetspokename2" "$vnetspokename3")
+subnet_names=("$subnetname1" "$subnetname2" "$subnetname3")
+nsg_names=("$nsgname1" "$nsgname2" "$nsgname3")
 
+# get public IP
+echo -e "${info_color}Attempting to get current public IP for NSG rule...${reset_color}"
+myazpip=$(curl -4 ifconfig.io -s)
+if [ -z "$myazpip" ]; then
+    handle_error "Failed to retrieve current public IP. Please check internet connection."
+else
+    echo -e "${success_color}Detected public IP: $myazpip${reset_color}"
+fi
 
 # create resource group
-echo "Creating Resource Group"
-az group create --name $rg --location $location
-echo "Resource Group Deployed"
+echo -e "${info_color}Creating Resource Group: $rg in $location...${reset_color}"
+az group create --name "$rg" --location "$location" || handle_error "Failed to create resource group $rg."
+echo -e "${success_color}Resource Group $rg created/exists.${reset_color}"
 
+# create virtual wan and hub
+echo -e "${info_color}Creating VWAN: $vwan1name and Hub: $hub1name...${reset_color}"
+az network vwan create -g "$rg" --name "$vwan1name" --branch-to-branch-traffic true --location "$location" --type Standard || handle_error "Failed to create Virtual WAN $vwan1name."
+az network vhub create -g "$rg" --name "$hub1name" --address-prefix "$address_prefix_hub1" --vwan "$vwan1name" --location "$location" --sku Standard || handle_error "Failed to create Virtual Hub $hub1name."
+echo -e "${success_color}VWAN $vwan1name and Hub $hub1name created/exists.${reset_color}"
 
+# create vnets
+echo -e "${info_color}Creating Spoke VNETs and Subnets...${reset_color}"
+az network vnet create --address-prefixes "$address_prefix_sp_vnet1" -n "$vnetspokename1" -g "$rg" -l "$location" --subnet-name "$subnetname1" --subnet-prefixes "$address_prefix_sp_vnet1" || handle_error "Failed to create VNet $vnetspokename1."
+echo -e "${success_color}Created VNet: $vnetspokename1 with Subnet: $subnetname1.${reset_color}"
+az network vnet create --address-prefixes "$address_prefix_sp_vnet2" -n "$vnetspokename2" -g "$rg" -l "$location" --subnet-name "$subnetname2" --subnet-prefixes "$address_prefix_sp_vnet2" || handle_error "Failed to create VNet $vnetspokename2."
+echo -e "${success_color}Created VNet: $vnetspokename2 with Subnet: $subnetname2.${reset_color}"
+az network vnet create --address-prefixes "$address_prefix_sp_vnet3" -n "$vnetspokename3" -g "$rg" -l "$location" --subnet-name "$subnetname3" --subnet-prefixes "$address_prefix_sp_vnet3" || handle_error "Failed to create VNet $vnetspokename3."
+echo -e "${success_color}Created VNet: $vnetspokename3 with Subnet: $subnetname3.${reset_color}"
 
+# create public IPs
+echo -e "${info_color}Creating PIPs for VMs...${reset_color}"
+for vm in "${vm_names[@]}"; do
+    az network public-ip create --resource-group "$rg" --name "PIP-$vm" --version IPv4 --allocation-method static --sku Standard --zone 1 2 3 || handle_error "Failed to create Public IP for VM $vm."
+    echo -e "${success_color}Created PIP for $vm${reset_color}"
+done
 
+# create NSGs and rules
+echo -e "${info_color}Creating NSGs and SSH rules for VMs...${reset_color}"
+for nsg in "${nsg_names[@]}"; do
+    az network nsg create --resource-group "$rg" --name "$nsg" || handle_error "Failed to create NSG $nsg."
+    echo -e "${success_color}Created NSG: $nsg.${reset_color}"
+    az network nsg rule create \
+      --resource-group "$rg" \
+      --nsg-name "$nsg" \
+      --name "Allow-My-Az-PIP-SSH" \
+      --direction Inbound \
+      --priority 100 \
+      --source-address-prefixes "$myazpip" \
+      --source-port-ranges '*' \
+      --destination-address-prefixes '*' \
+      --destination-port-ranges 22 \
+      --access Allow \
+      --protocol Tcp \
+      --description "Allow inbound SSH from current public IP $myazpip" || handle_error "Failed to create NSG rule for $nsg."
+    echo -e "${success_color}Added SSH rule to NSG: $nsg from $myazpip.${reset_color}"
+done
 
+# associate NSGs
+echo -e "${info_color}Associating NSGs to Subnets...${reset_color}"
+az network vnet subnet update --resource-group "$rg" --vnet-name "$vnetspokename1" --name "$subnetname1" --network-security-group "$nsgname1" || handle_error "Failed to associate NSG $nsgname1 with subnet $subnetname1."
+echo -e "${success_color}Associated NSG $nsgname1 with subnet $subnetname1.${reset_color}"
+az network vnet subnet update --resource-group "$rg" --vnet-name "$vnetspokename2" --name "$subnetname2" --network-security-group "$nsgname2" || handle_error "Failed to associate NSG $nsgname2 with subnet $subnetname2."
+echo -e "${success_color}Associated NSG $nsgname2 with subnet $subnetname2.${reset_color}"
+az network vnet subnet update --resource-group "$rg" --vnet-name "$vnetspokename3" --name "$subnetname3" --network-security-group "$nsgname3" || handle_error "Failed to associate NSG $nsgname3 with subnet $subnetname3."
+echo -e "${success_color}Associated NSG $nsgname3 with subnet $subnetname3.${reset_color}"
 
+# create NICs
+echo -e "${info_color}Creating NICs for VMs...${reset_color}"
+for i in "${!vm_names[@]}"; do
+    vm="${vm_names[$i]}"
+    vnet="${vnet_spoke_names[$i]}"
+    subnet="${subnet_names[$i]}"
+    nsg="${nsg_names[$i]}"
+    nic_name="NIC-$vm"
+    pip_name="PIP-$vm"
+    az network nic create --resource-group "$rg" --name "$nic_name" --vnet-name "$vnet" --subnet "$subnet" --network-security-group "$nsg" --public-ip-address "$pip_name" || handle_error "Failed to create NIC $nic_name for VM $vm."
+    echo -e "${success_color}Created NIC: $nic_name for $vm.${reset_color}"
+done
 
-# create ssh key
-echo "Creating SSH Key Pair"
-az sshkey create --location $location --resource-group "$rg" --name $sshkeyname
-echo "Deployed SSH Key Pair, please download private key and store in a safe location"
+# create ssh key (if not exists)
+echo -e "${info_color}Creating/ensuring SSH key for VM authentication...${reset_color}"
+# Ensure the SSH key is created for passwordless login
+# This command will create id_rsa and id_rsa.pub in ~/.ssh/ by default,
+# or create a new key pair with the specified name.
+az sshkey create --location "$location" --resource-group "$rg" --name "$sshkeyname" || handle_error "Failed to create SSH key $sshkeyname."
+echo -e "${success_color}SSH key $sshkeyname created/exists at ~/.ssh/$sshkeyname.${reset_color}"
 
-echo "Deployment has finished"
+# create VMs
+echo -e "${info_color}Creating VMs...${reset_color}"
+for i in "${!vm_names[@]}"; do
+    vm="${vm_names[$i]}"
+    nic_name="NIC-$vm"
+    echo -e "${info_color}Creating VM: $vm...${reset_color}"
+    az vm create -g "$rg" -n "$vm" --image Ubuntu2204 --size "$vmsize" -l "$location" --nics "$nic_name" --admin-username "$username" --ssh-key-value "@$(eval echo ~$USER)/.ssh/$sshkeyname.pub" || handle_error "Failed to create VM $vm."
+    echo -e "${success_color}VM $vm created.${reset_color}"
+done
+
+# monitor vhub provisioning
+echo -e "${info_color}Monitoring vHub provisioning state for $hub1name...${reset_color}"
+check_vhub_state() {
+    local vhub_name=$1
+    local attempt=0
+    local max_attempts=60 # 5 minutes max wait (60 * 5 seconds)
+
+    while [[ $attempt -lt $max_attempts ]]; do
+        prState=$(az network vhub show -g "$rg" -n "$vhub_name" --query 'provisioningState' -o tsv)
+        rtState=$(az network vhub show -g "$rg" -n "$vhub_name" --query 'routingState' -o tsv)
+        echo -e "${info_color}$vhub_name provisioningState=$prState, routingState=$rtState (Attempt $((attempt+1))/${max_attempts})${reset_color}"
+        if [[ "$prState" == 'Succeeded' && "$rtState" == 'Provisioned' ]]; then
+            echo -e "${success_color}vHub $vhub_name successfully provisioned.${reset_color}"
+            return 0 # Success
+        fi
+        sleep 5
+        ((attempt++))
+    done
+    return 1 # Failure after max attempts
+}
+
+check_vhub_state "$hub1name" || handle_error "vHub $hub1name did not reach 'Succeeded' and 'Provisioned' state within the expected time."
+
+# create vnet connections
+echo -e "${info_color}Creating vHub vNet connections...${reset_color}"
+for vnet in "${vnet_spoke_names[@]}"; do
+    az network vhub connection create -n "Spoke-$vnet-Connection" --remote-vnet "$vnet" -g "$rg" --vhub-name "$hub1name" || handle_error "Failed to create vHub connection for VNet $vnet."
+    echo -e "${success_color}Connected $vnet to hub.${reset_color}"
+done
+
+# create VPN gateway
+echo -e "${info_color}Creating vHub VPN Gateway: VPNGW-$hub1name...${reset_color}"
+az network vpn-gateway create -n "VPNGW-$hub1name" -g "$rg" --location "$location" --vhub "$hub1name" || handle_error "Failed to create VPN Gateway for hub $hub1name."
+echo -e "${success_color}VPN Gateway VPNGW-$hub1name created/exists.${reset_color}"
+
+# install network tools
+nettoolsuri="https://raw.githubusercontent.com/CyberOps-Ninja/Azure-IaC/main/Project-Azure-CLI/Azure-Net-Tools/vm-net-tools.sh"
+echo -e "${info_color}Installing network tools on VMs using Custom Script Extension...${reset_color}"
+for vm in "${vm_names[@]}"; do
+    echo -e "${info_color}Installing tools on $vm...${reset_color}"
+    az vm extension set \
+        --resource-group "$rg" \
+        --vm-name "$vm" \
+        --name customScript \
+        --publisher Microsoft.Azure.Extensions \
+        --settings "{\"fileUris\": [\"$nettoolsuri\"],\"commandToExecute\": \"./vm-net-tools.sh\"}" || handle_error "Failed to install network tools on VM $vm."
+        # Changed "protected-settings" to "settings" as the script itself isn't sensitive data.
+        # Adjusted commandToExecute if the script's actual name is vm-net-tools.sh.
+    echo -e "${success_color}Network tools installation command sent to $vm.${reset_color}"
+done
+
+# print complete
+echo -e "${success_color}--- Azure Virtual WAN and Spoke VNET Deployment Finished Successfully ---${reset_color}"
